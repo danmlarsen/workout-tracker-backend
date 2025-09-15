@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id Int @default(autoincrement()) @id
+  email String @unique
+  password String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  workouts Workout[]
+  exercises Exercise[]
+}
+
+model Exercise {
+  id Int @default(autoincrement()) @id
+  name String @unique
+  user User? @relation(fields: [userId], references: [id])
+  userId Int?
+  type String
+  muscleGroup String
+  equipment String
+  image String?
+  workoutExercises WorkoutExercise[]
+}
+
+model Workout {
+  id Int @default(autoincrement()) @id
+  title String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  completedAt DateTime?
+  user User @relation(fields: [userId], references: [id])
+  userId Int
+  workoutExercises WorkoutExercise[]
+}
+
+model WorkoutExercise {
+  id Int @default(autoincrement()) @id
+  workout Workout @relation(fields: [workoutId], references: [id])
+  workoutId Int
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+  exerciseId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  workoutSets WorkoutSet[]
+}
+
+model WorkoutSet {
+  id Int @default(autoincrement()) @id
+  workoutExercise WorkoutExercise @relation(fields: [workoutExerciseId], references: [id])
+  workoutExerciseId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  completedAt DateTime?
+  reps Int?
+  weight Float?
+  duration Int?
+}
