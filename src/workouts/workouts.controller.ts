@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -23,8 +24,8 @@ export class WorkoutsController {
   }
 
   @Get('/:id')
-  getWorkout(@Param('id') id: string) {
-    return this.workoutsService.getWorkout(parseInt(id));
+  getWorkout(@Param('id', ParseIntPipe) id: number) {
+    return this.workoutsService.getWorkout(id);
   }
 
   @Post()
@@ -34,18 +35,21 @@ export class WorkoutsController {
   }
 
   @Patch('/:id')
-  updateWorkout(@Param('id') id: string, @Body() body: UpdateWorkoutDto) {
-    return this.workoutsService.updateWorkout(parseInt(id), body);
+  updateWorkout(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateWorkoutDto,
+  ) {
+    return this.workoutsService.updateWorkout(id, body);
   }
 
   @Delete('/:id')
-  deleteWorkout(@Param('id') id: string) {
-    return this.workoutsService.deleteWorkout(parseInt(id));
+  deleteWorkout(@Param('id', ParseIntPipe) id: number) {
+    return this.workoutsService.deleteWorkout(id);
   }
 
   @Post('/:id/workoutExercises')
   createWorkoutExercise(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() body: CreateWorkoutExerciseDto,
   ) {
     console.log(body);
@@ -54,8 +58,8 @@ export class WorkoutsController {
 
   @Post('/:id/workoutExercises/:workoutExerciseId/sets')
   createWorkoutSet(
-    @Param('id') id: number,
-    @Param('workoutExerciseId') workoutExerciseId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
     @Body() body: CreateWorkoutSetDto,
   ) {
     console.log(body);
