@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWorkoutDto } from './dtos/create-workout.dto';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
 import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
+import { UpdateWorkoutDto } from './dtos/update-workout.dto';
 
 @Injectable()
 export class WorkoutsService {
@@ -35,9 +36,16 @@ export class WorkoutsService {
     });
   }
 
-  async createWorkout(data: CreateWorkoutDto, userId: number) {
+  async createWorkout(userId: number, data: CreateWorkoutDto) {
     return this.prismaService.workout.create({
       data: { title: data.title, userId },
+    });
+  }
+
+  async updateWorkout(id: number, data: UpdateWorkoutDto) {
+    return this.prismaService.workout.update({
+      data,
+      where: { id },
     });
   }
 
