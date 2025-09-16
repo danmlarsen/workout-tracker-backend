@@ -13,6 +13,7 @@ import { CreateWorkoutDto } from './dtos/create-workout.dto';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
 import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
 import { UpdateWorkoutDto } from './dtos/update-workout.dto';
+import { UpdateWorkoutSetDto } from './dtos/update-workout-set.dto';
 
 @Controller('workouts')
 export class WorkoutsController {
@@ -52,17 +53,29 @@ export class WorkoutsController {
     @Param('workoutId', ParseIntPipe) workoutId: number,
     @Body() body: CreateWorkoutExerciseDto,
   ) {
-    console.log(body);
-    return `Create workout exercise for workout id: ${workoutId} with exercise id ${body.exerciseId}`;
+    return this.workoutsService.createWorkoutExercise(workoutId, body);
+  }
+
+  @Get('/:workoutId/workoutExercises/:workoutExerciseId/sets')
+  getWorkoutExerciseSets(
+    @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
+  ) {
+    return this.workoutsService.getWorkoutExerciseSets(workoutExerciseId);
   }
 
   @Post('/:workoutId/workoutExercises/:workoutExerciseId/sets')
   createWorkoutSet(
-    @Param('workoutId', ParseIntPipe) workoutId: number,
     @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
     @Body() body: CreateWorkoutSetDto,
   ) {
-    console.log(body);
-    return `Create workout set for workout id: ${workoutId} and exercise id: ${workoutExerciseId}`;
+    return this.workoutsService.createWorkoutSet(workoutExerciseId, body);
+  }
+
+  @Patch('/:workoutId/workoutExercises/:workoutExerciseId/sets/:setId')
+  updateWorkoutSet(
+    @Param('setId', ParseIntPipe) setId: number,
+    @Body() body: UpdateWorkoutSetDto,
+  ) {
+    return this.workoutsService.updateWorkoutSet(setId, body);
   }
 }

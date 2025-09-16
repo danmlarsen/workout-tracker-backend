@@ -4,6 +4,7 @@ import { CreateWorkoutDto } from './dtos/create-workout.dto';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
 import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
 import { UpdateWorkoutDto } from './dtos/update-workout.dto';
+import { UpdateWorkoutSetDto } from './dtos/update-workout-set.dto';
 
 @Injectable()
 export class WorkoutsService {
@@ -62,9 +63,36 @@ export class WorkoutsService {
     });
   }
 
+  async getWorkoutExerciseSets(id: number) {
+    return this.prismaService.workoutExercise.findUnique({
+      include: {
+        workoutSets: true,
+        exercise: true,
+      },
+      where: { id },
+    });
+  }
+
   async createWorkoutSet(workoutExerciseId: number, data: CreateWorkoutSetDto) {
     return this.prismaService.workoutSet.create({
       data: { ...data, workoutExerciseId },
+    });
+  }
+
+  async updateWorkoutSet(id: number, data: UpdateWorkoutSetDto) {
+    const updateData: { [key: string]: any } = { ...data };
+
+    if (data.completed) {
+      updateData.completedAt = new Date();
+    } else {
+      updateData.completedAt = null;
+    }
+
+    delete updateData.completed;
+
+    return this.prismaService.workoutSet.update({
+      data: updateData,
+      where: { id },
     });
   }
 }
