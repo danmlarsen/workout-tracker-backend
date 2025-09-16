@@ -23,9 +23,9 @@ export class WorkoutsController {
     return this.workoutsService.getAllWorkouts();
   }
 
-  @Get('/:id')
-  getWorkout(@Param('id', ParseIntPipe) id: number) {
-    return this.workoutsService.getWorkout(id);
+  @Get('/:workoutId')
+  getWorkout(@Param('workoutId', ParseIntPipe) workoutId: number) {
+    return this.workoutsService.getWorkout(workoutId);
   }
 
   @Post()
@@ -34,35 +34,35 @@ export class WorkoutsController {
     return this.workoutsService.createWorkout(userId, body);
   }
 
-  @Patch('/:id')
+  @Patch('/:workoutId')
   updateWorkout(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('workoutId', ParseIntPipe) workoutId: number,
     @Body() body: UpdateWorkoutDto,
   ) {
-    return this.workoutsService.updateWorkout(id, body);
+    return this.workoutsService.updateWorkout(workoutId, body);
   }
 
-  @Delete('/:id')
-  deleteWorkout(@Param('id', ParseIntPipe) id: number) {
-    return this.workoutsService.deleteWorkout(id);
+  @Delete('/:workoutId')
+  deleteWorkout(@Param('workoutId', ParseIntPipe) workoutId: number) {
+    return this.workoutsService.deleteWorkout(workoutId);
   }
 
-  @Post('/:id/workoutExercises')
+  @Post('/:workoutId/workoutExercises')
   createWorkoutExercise(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('workoutId', ParseIntPipe) workoutId: number,
     @Body() body: CreateWorkoutExerciseDto,
   ) {
     console.log(body);
-    return `Create workout exercise for workout id: ${id} with exercise id ${body.exerciseId}`;
+    return `Create workout exercise for workout id: ${workoutId} with exercise id ${body.exerciseId}`;
   }
 
-  @Post('/:id/workoutExercises/:workoutExerciseId/sets')
+  @Post('/:workoutId/workoutExercises/:workoutExerciseId/sets')
   createWorkoutSet(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('workoutId', ParseIntPipe) workoutId: number,
     @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
     @Body() body: CreateWorkoutSetDto,
   ) {
     console.log(body);
-    return `Create workout set for workout id: ${id} and exercise id: ${workoutExerciseId}`;
+    return `Create workout set for workout id: ${workoutId} and exercise id: ${workoutExerciseId}`;
   }
 }
