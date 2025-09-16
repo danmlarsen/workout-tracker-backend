@@ -13,6 +13,11 @@ export class WorkoutsController {
     return this.workoutsService.getAllWorkouts();
   }
 
+  @Get('/:id')
+  getWorkout(@Param('id') id: string) {
+    return this.workoutsService.getWorkout(parseInt(id));
+  }
+
   @Post()
   createWorkout(@Body() body: CreateWorkoutDto) {
     const userId = 1;

@@ -8,6 +8,20 @@ import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
 export class WorkoutsService {
   constructor(private prismaService: PrismaService) {}
 
+  async getWorkout(id: number) {
+    return this.prismaService.workout.findUnique({
+      where: { id },
+      include: {
+        workoutExercises: {
+          include: {
+            exercise: true,
+            workoutSets: true,
+          },
+        },
+      },
+    });
+  }
+
   async getAllWorkouts() {
     return this.prismaService.workout.findMany({
       include: {
