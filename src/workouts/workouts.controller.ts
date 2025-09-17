@@ -24,7 +24,7 @@ export class WorkoutsController {
     return this.workoutsService.getAllWorkouts();
   }
 
-  @Get('/:workoutId')
+  @Get(':workoutId')
   getWorkout(@Param('workoutId', ParseIntPipe) workoutId: number) {
     return this.workoutsService.getWorkout(workoutId);
   }
@@ -35,7 +35,7 @@ export class WorkoutsController {
     return this.workoutsService.createWorkout(userId, body);
   }
 
-  @Patch('/:workoutId')
+  @Patch(':workoutId')
   updateWorkout(
     @Param('workoutId', ParseIntPipe) workoutId: number,
     @Body() body: UpdateWorkoutDto,
@@ -43,12 +43,12 @@ export class WorkoutsController {
     return this.workoutsService.updateWorkout(workoutId, body);
   }
 
-  @Delete('/:workoutId')
+  @Delete(':workoutId')
   deleteWorkout(@Param('workoutId', ParseIntPipe) workoutId: number) {
     return this.workoutsService.deleteWorkout(workoutId);
   }
 
-  @Post('/:workoutId/workoutExercises')
+  @Post(':workoutId/workoutExercises')
   createWorkoutExercise(
     @Param('workoutId', ParseIntPipe) workoutId: number,
     @Body() body: CreateWorkoutExerciseDto,
@@ -56,14 +56,14 @@ export class WorkoutsController {
     return this.workoutsService.createWorkoutExercise(workoutId, body);
   }
 
-  @Get('/:workoutId/workoutExercises/:workoutExerciseId/sets')
+  @Get(':workoutId/workoutExercises/:workoutExerciseId/sets')
   getWorkoutExerciseSets(
     @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
   ) {
     return this.workoutsService.getWorkoutExerciseSets(workoutExerciseId);
   }
 
-  @Post('/:workoutId/workoutExercises/:workoutExerciseId/sets')
+  @Post(':workoutId/workoutExercises/:workoutExerciseId/sets')
   createWorkoutSet(
     @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
     @Body() body: CreateWorkoutSetDto,
@@ -71,7 +71,7 @@ export class WorkoutsController {
     return this.workoutsService.createWorkoutSet(workoutExerciseId, body);
   }
 
-  @Patch('/:workoutId/workoutExercises/:workoutExerciseId/sets/:setId')
+  @Patch(':workoutId/workoutExercises/:workoutExerciseId/sets/:setId')
   updateWorkoutSet(
     @Param('setId', ParseIntPipe) setId: number,
     @Body() body: UpdateWorkoutSetDto,

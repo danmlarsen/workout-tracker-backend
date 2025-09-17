@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { RegisterUserDto } from 'src/auth/dtos/register-user.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -6,8 +7,8 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class UsersService {
   constructor(private prismaService: PrismaService) {}
 
-  findByEmail(email: string) {
-    return this.prismaService.user.findUnique({ where: { email } });
+  getUser(filter: Prisma.UserWhereUniqueInput) {
+    return this.prismaService.user.findUnique({ where: filter });
   }
 
   getAllUsers() {
