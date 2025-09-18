@@ -1,8 +1,4 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { RegisterUserDto } from './dtos/register-user.dto';
 import * as bcrypt from 'bcrypt';
@@ -32,10 +28,10 @@ export class AuthService {
 
   async validateUser(data: LoginUserDto) {
     const user = await this.usersService.getUser({ email: data.email });
-    if (!user) throw new UnauthorizedException('error logging in');
+    if (!user) return null;
 
     const isMatch = await bcrypt.compare(data.password, user.password);
-    if (!isMatch) throw new UnauthorizedException('error logging in');
+    if (!isMatch) return null;
 
     return plainToInstance(UserResponseDto, user, {
       excludeExtraneousValues: true,
