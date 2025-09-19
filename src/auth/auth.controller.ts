@@ -1,12 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  Post,
-  Request,
-  Res,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
 import { RegisterUserDto } from './dtos/register-user.dto';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
@@ -15,6 +7,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { type Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
+import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -31,10 +24,10 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @Post('login')
   login(
-    @Request() req: { user: UserResponseDto },
+    @CurrentUser() user: UserResponseDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { access_token } = this.authService.login(req.user);
+    const { access_token } = this.authService.login(user);
 
     const expiresIn = this.configService.getOrThrow<string>('JWT_EXP');
     const maxAge = ms(expiresIn as unknown as StringValue);
@@ -63,7 +56,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('whoami')
-  whoAmI(@Request() req: { user: UserResponseDto }) {
-    return req.user;
+  whoAmI(@CurrentUser() user: UserResponseDto) {
+    return user;
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWorkoutDto } from './dtos/create-workout.dto';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
@@ -10,9 +10,9 @@ import { UpdateWorkoutSetDto } from './dtos/update-workout-set.dto';
 export class WorkoutsService {
   constructor(private prismaService: PrismaService) {}
 
-  async getWorkout(id: number) {
+  async getWorkout(id: number, userId: number) {
     return this.prismaService.workout.findUnique({
-      where: { id },
+      where: { id, userId },
       include: {
         workoutExercises: {
           include: {
@@ -24,8 +24,9 @@ export class WorkoutsService {
     });
   }
 
-  async getAllWorkouts() {
+  async getAllWorkouts(userId: number) {
     return this.prismaService.workout.findMany({
+      where: { userId },
       include: {
         workoutExercises: {
           include: {
@@ -43,43 +44,93 @@ export class WorkoutsService {
     });
   }
 
-  async updateWorkout(id: number, data: UpdateWorkoutDto) {
+  async updateWorkout(id: number, userId: number, data: UpdateWorkoutDto) {
     return this.prismaService.workout.update({
+      where: { id, userId },
       data,
-      where: { id },
     });
   }
 
-  async deleteWorkout(id: number) {
-    return this.prismaService.workout.delete({ where: { id } });
+  async deleteWorkout(id: number, userId: number) {
+    return this.prismaService.workout.delete({ where: { id, userId } });
   }
 
   async createWorkoutExercise(
     workoutId: number,
+    userId: number,
     data: CreateWorkoutExerciseDto,
   ) {
+    const workout = await this.prismaService.workout.findFirst({
+      where: { id: workoutId, userId },
+    });
+
+    if (!workout) throw new ForbiddenException('Not allowed');
+
     return this.prismaService.workoutExercise.create({
       data: { workoutId, exerciseId: data.exerciseId },
     });
   }
 
-  async getWorkoutExerciseSets(id: number) {
-    return this.prismaService.workoutExercise.findUnique({
-      include: {
-        workoutSets: true,
-        exercise: true,
+  async getWorkoutExerciseSets(id: number, userId: number) {
+    const workoutExercise = await this.prismaService.workoutExercise.findUnique(
+      {
+        where: { id },
+        include: {
+          workout: true,
+          workoutSets: true,
+          exercise: true,
+        },
       },
-      where: { id },
-    });
+    );
+
+    console.log(workoutExercise);
+
+    if (!workoutExercise || workoutExercise.workout.userId !== userId) {
+      throw new ForbiddenException('Not allowed');
+    }
+
+    return workoutExercise;
   }
 
-  async createWorkoutSet(workoutExerciseId: number, data: CreateWorkoutSetDto) {
+  async createWorkoutSet(
+    workoutExerciseId: number,
+    userId: number,
+    data: CreateWorkoutSetDto,
+  ) {
+    const workoutExercise = await this.prismaService.workoutExercise.findUnique(
+      {
+        where: { id: workoutExerciseId },
+        include: { workout: true },
+      },
+    );
+
+    if (!workoutExercise || workoutExercise.workout.userId !== userId) {
+      throw new ForbiddenException('Not allowed');
+    }
+
     return this.prismaService.workoutSet.create({
       data: { ...data, workoutExerciseId },
     });
   }
 
-  async updateWorkoutSet(id: number, data: UpdateWorkoutSetDto) {
+  async updateWorkoutSet(
+    id: number,
+    userId: number,
+    data: UpdateWorkoutSetDto,
+  ) {
+    const workoutSet = await this.prismaService.workoutSet.findUnique({
+      where: { id },
+      include: {
+        workoutExercise: {
+          include: { workout: true },
+        },
+      },
+    });
+
+    if (!workoutSet || workoutSet.workoutExercise.workout.userId !== userId) {
+      throw new ForbiddenException('Not allowed');
+    }
+
     const updateData: { [key: string]: any } = { ...data };
 
     if (data.completed) {
@@ -91,8 +142,8 @@ export class WorkoutsService {
     delete updateData.completed;
 
     return this.prismaService.workoutSet.update({
-      data: updateData,
       where: { id },
+      data: updateData,
     });
   }
 }
