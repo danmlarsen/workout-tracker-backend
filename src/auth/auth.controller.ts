@@ -8,6 +8,7 @@ import { type Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
+import { ACCESS_TOKEN_COOKIE } from 'src/common/constants';
 
 @Controller('auth')
 export class AuthController {
@@ -32,7 +33,7 @@ export class AuthController {
     const expiresIn = this.configService.getOrThrow<string>('JWT_EXP');
     const maxAge = ms(expiresIn as unknown as StringValue);
 
-    res.cookie('access_token', access_token, {
+    res.cookie(ACCESS_TOKEN_COOKIE, access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -45,7 +46,7 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie('access_token', {
+    res.clearCookie(ACCESS_TOKEN_COOKIE, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
