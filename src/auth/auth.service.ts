@@ -11,6 +11,7 @@ import { plainToInstance } from 'class-transformer';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { JwtPayload } from 'src/common/types/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
@@ -71,7 +72,7 @@ export class AuthService {
   }
 
   async refreshTokens(refreshToken: string) {
-    let payload: { sub: number; email: string };
+    let payload: JwtPayload;
     try {
       payload = this.jwtService.decode(refreshToken);
     } catch {

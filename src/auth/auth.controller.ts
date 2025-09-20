@@ -11,7 +11,6 @@ import {
 import { RegisterUserDto } from './dtos/register-user.dto';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
-import { UserResponseDto } from './dtos/user-response.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { type Response } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -21,6 +20,7 @@ import {
   ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
 } from 'src/common/constants';
+import { type AuthUser } from 'src/common/types/auth-user.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -37,7 +37,7 @@ export class AuthController {
   @UseGuards(LocalAuthGuard)
   @Post('login')
   async login(
-    @CurrentUser() user: UserResponseDto,
+    @CurrentUser() user: AuthUser,
     @Res({ passthrough: true }) res: Response,
   ) {
     const { access_token, refresh_token } = await this.authService.login(user);
@@ -107,7 +107,7 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('whoami')
-  whoAmI(@CurrentUser() user: UserResponseDto) {
+  whoAmI(@CurrentUser() user: AuthUser) {
     return user;
   }
 }

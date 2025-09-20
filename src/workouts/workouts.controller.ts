@@ -17,7 +17,7 @@ import { UpdateWorkoutDto } from './dtos/update-workout.dto';
 import { UpdateWorkoutSetDto } from './dtos/update-workout-set.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
-import { UserResponseDto } from 'src/auth/dtos/user-response.dto';
+import { type AuthUser } from 'src/common/types/auth-user.interface';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workouts')
@@ -25,30 +25,27 @@ export class WorkoutsController {
   constructor(private workoutsService: WorkoutsService) {}
 
   @Get()
-  getAllWorkouts(@CurrentUser() user: UserResponseDto) {
+  getAllWorkouts(@CurrentUser() user: AuthUser) {
     return this.workoutsService.getAllWorkouts(user.id);
   }
 
   @Get(':workoutId')
   getWorkout(
     @Param('workoutId', ParseIntPipe) workoutId: number,
-    @CurrentUser() user: UserResponseDto,
+    @CurrentUser() user: AuthUser,
   ) {
     return this.workoutsService.getWorkout(workoutId, user.id);
   }
 
   @Post()
-  createWorkout(
-    @Body() body: CreateWorkoutDto,
-    @CurrentUser() user: UserResponseDto,
-  ) {
+  createWorkout(@Body() body: CreateWorkoutDto, @CurrentUser() user: AuthUser) {
     return this.workoutsService.createWorkout(user.id, body);
   }
 
   @Patch(':workoutId')
   updateWorkout(
     @Param('workoutId', ParseIntPipe) workoutId: number,
-    @CurrentUser() user: UserResponseDto,
+    @CurrentUser() user: AuthUser,
     @Body() body: UpdateWorkoutDto,
   ) {
     return this.workoutsService.updateWorkout(workoutId, user.id, body);
@@ -57,7 +54,7 @@ export class WorkoutsController {
   @Delete(':workoutId')
   deleteWorkout(
     @Param('workoutId', ParseIntPipe) workoutId: number,
-    @CurrentUser() user: UserResponseDto,
+    @CurrentUser() user: AuthUser,
   ) {
     return this.workoutsService.deleteWorkout(workoutId, user.id);
   }
@@ -65,7 +62,7 @@ export class WorkoutsController {
   @Post(':workoutId/workoutExercises')
   createWorkoutExercise(
     @Param('workoutId', ParseIntPipe) workoutId: number,
-    @CurrentUser() user: UserResponseDto,
+    @CurrentUser() user: AuthUser,
     @Body() body: CreateWorkoutExerciseDto,
   ) {
     return this.workoutsService.createWorkoutExercise(workoutId, user.id, body);
@@ -74,7 +71,7 @@ export class WorkoutsController {
   @Get(':workoutId/workoutExercises/:workoutExerciseId/sets')
   getWorkoutExerciseSets(
     @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
-    @CurrentUser() user: UserResponseDto,
+    @CurrentUser() user: AuthUser,
   ) {
     return this.workoutsService.getWorkoutExerciseSets(
       workoutExerciseId,
@@ -85,7 +82,7 @@ export class WorkoutsController {
   @Post(':workoutId/workoutExercises/:workoutExerciseId/sets')
   createWorkoutSet(
     @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
-    @CurrentUser() user: UserResponseDto,
+    @CurrentUser() user: AuthUser,
     @Body() body: CreateWorkoutSetDto,
   ) {
     return this.workoutsService.createWorkoutSet(
@@ -98,7 +95,7 @@ export class WorkoutsController {
   @Patch(':workoutId/workoutExercises/:workoutExerciseId/sets/:setId')
   updateWorkoutSet(
     @Param('setId', ParseIntPipe) setId: number,
-    @CurrentUser() user: UserResponseDto,
+    @CurrentUser() user: AuthUser,
     @Body() body: UpdateWorkoutSetDto,
   ) {
     return this.workoutsService.updateWorkoutSet(setId, user.id, body);
