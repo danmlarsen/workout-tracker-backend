@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Request,
+  Res,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 import { RegisterUserDto } from './dtos/register-user.dto';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
@@ -8,7 +17,10 @@ import { type Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
-import { ACCESS_TOKEN_COOKIE } from 'src/common/constants';
+import {
+  ACCESS_TOKEN_COOKIE,
+  REFRESH_TOKEN_COOKIE,
+} from 'src/common/constants';
 
 @Controller('auth')
 export class AuthController {
@@ -24,20 +36,58 @@ export class AuthController {
 
   @UseGuards(LocalAuthGuard)
   @Post('login')
-  login(
+  async login(
     @CurrentUser() user: UserResponseDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { access_token } = this.authService.login(user);
-
-    const expiresIn = this.configService.getOrThrow<string>('JWT_EXP');
-    const maxAge = ms(expiresIn as unknown as StringValue);
+    const { access_token, refresh_token } = await this.authService.login(user);
 
     res.cookie(ACCESS_TOKEN_COOKIE, access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge,
+      maxAge: ms(
+        (this.configService.get<string>('JWT_EXP') ||
+          '15m') as unknown as StringValue,
+      ),
+    });
+
+    res.cookie(REFRESH_TOKEN_COOKIE, refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: ms(
+        (this.configService.get<string>('JWT_REFRESH_EXP') ||
+          '30d') as unknown as StringValue,
+      ),
+    });
+
+    return { access_token, refresh_token };
+  }
+
+  @Post('refresh')
+  async refresh(
+    @Request()
+    req: {
+      cookies?: { refresh_token?: string };
+      body?: { refresh_token?: string };
+    },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const refresh_token = req.cookies?.refresh_token || req.body?.refresh_token;
+    if (!refresh_token) throw new UnauthorizedException('No refresh token');
+
+    const { access_token } =
+      await this.authService.refreshTokens(refresh_token);
+
+    res.cookie(ACCESS_TOKEN_COOKIE, access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: ms(
+        (this.configService.get<string>('JWT_EXP') ||
+          '15m') as unknown as StringValue,
+      ),
     });
 
     return { access_token };

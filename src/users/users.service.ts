@@ -18,4 +18,8 @@ export class UsersService {
   createUser(data: RegisterUserDto) {
     return this.prismaService.user.create({ data });
   }
+
+  updateUser(id: number, data: Prisma.UserUpdateInput) {
+    return this.prismaService.user.update({ where: { id }, data });
+  }
 }
