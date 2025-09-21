@@ -43,4 +43,16 @@ export class ExercisesService {
       data,
     });
   }
+
+  async deleteExercise(exerciseId: number, userId: number) {
+    const exercise = await this.prismaService.exercise.findFirst({
+      where: { AND: [{ id: exerciseId }, { userId }] },
+    });
+
+    if (!exercise) throw new NotFoundException('exercise not found');
+
+    return this.prismaService.exercise.delete({
+      where: { id: exerciseId },
+    });
+  }
 }
