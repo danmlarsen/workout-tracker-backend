@@ -19,7 +19,7 @@ export class ExercisesService {
     });
   }
 
-  findExerciseById(exerciseId: number, userId: number) {
+  findExerciseById(userId: number, exerciseId: number) {
     return this.prismaService.exercise.findFirst({
       where: {
         AND: [{ id: exerciseId }, { OR: [{ userId }, { userId: null }] }],
@@ -28,8 +28,8 @@ export class ExercisesService {
   }
 
   async updateExercise(
-    exerciseId: number,
     userId: number,
+    exerciseId: number,
     data: UpdateExerciseDto,
   ) {
     const exercise = await this.prismaService.exercise.findFirst({
@@ -44,7 +44,7 @@ export class ExercisesService {
     });
   }
 
-  async deleteExercise(exerciseId: number, userId: number) {
+  async deleteExercise(userId: number, exerciseId: number) {
     const exercise = await this.prismaService.exercise.findFirst({
       where: { AND: [{ id: exerciseId }, { userId }] },
     });
