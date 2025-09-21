@@ -12,7 +12,7 @@ import {
 import { ExercisesService } from './exercises.service';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { type AuthUser } from 'src/common/types/auth-user.interface';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CreateExerciseDto } from './dtos/create-exercise.dto';
 import { UpdateExerciseDto } from './dtos/update-exercise.dto';
 
