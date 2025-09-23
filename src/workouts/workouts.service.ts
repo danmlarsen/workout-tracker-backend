@@ -1,6 +1,5 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateWorkoutDto } from './dtos/create-workout.dto';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
 import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
 import { UpdateWorkoutDto } from './dtos/update-workout.dto';
@@ -38,9 +37,44 @@ export class WorkoutsService {
     });
   }
 
-  async createWorkout(userId: number, data: CreateWorkoutDto) {
+  async getActiveWorkout(userId: number) {
+    return this.prismaService.workout.findFirst({
+      where: { userId, completedAt: null },
+      include: {
+        workoutExercises: {
+          include: {
+            exercise: true,
+            workoutSets: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createWorkout(userId: number) {
+    const today = new Date();
+    const title = today.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+
     return this.prismaService.workout.create({
-      data: { title: data.title, userId },
+      data: { title, userId },
+    });
+  }
+
+  async completeWorkout(userId: number, workoutId: number) {
+    const workout = await this.prismaService.workout.findFirst({
+      where: { id: workoutId, userId, completedAt: null },
+    });
+
+    if (!workout) throw new ForbiddenException('Not allowed');
+
+    return this.prismaService.workout.update({
+      where: { id: workoutId },
+      data: { completedAt: new Date() },
     });
   }
 

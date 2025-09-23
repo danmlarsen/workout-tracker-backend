@@ -10,7 +10,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { WorkoutsService } from './workouts.service';
-import { CreateWorkoutDto } from './dtos/create-workout.dto';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
 import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
 import { UpdateWorkoutDto } from './dtos/update-workout.dto';
@@ -29,6 +28,11 @@ export class WorkoutsController {
     return this.workoutsService.getAllWorkouts(user.id);
   }
 
+  @Get('active')
+  getActiveWorkout(@CurrentUser() user: AuthUser) {
+    return this.workoutsService.getActiveWorkout(user.id);
+  }
+
   @Get(':workoutId')
   getWorkout(
     @Param('workoutId', ParseIntPipe) workoutId: number,
@@ -38,8 +42,16 @@ export class WorkoutsController {
   }
 
   @Post()
-  createWorkout(@Body() body: CreateWorkoutDto, @CurrentUser() user: AuthUser) {
-    return this.workoutsService.createWorkout(user.id, body);
+  createWorkout(@CurrentUser() user: AuthUser) {
+    return this.workoutsService.createWorkout(user.id);
+  }
+
+  @Post(':workoutId/complete')
+  completeWorkout(
+    @Param('workoutId', ParseIntPipe) workoutId: number,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.workoutsService.completeWorkout(user.id, workoutId);
   }
 
   @Patch(':workoutId')

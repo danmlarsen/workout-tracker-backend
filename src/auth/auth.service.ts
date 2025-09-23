@@ -86,7 +86,7 @@ export class AuthService {
     const isValid = await bcrypt.compare(refreshToken, user.refreshToken);
     if (!isValid) throw new UnauthorizedException('Invalid refresh token');
 
-    const newPayload = {
+    const newPayload: JwtPayload = {
       sub: user.id,
       email: user.email,
     };
