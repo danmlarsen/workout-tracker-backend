@@ -23,9 +23,9 @@ export class WorkoutsService {
     });
   }
 
-  async getAllWorkouts(userId: number) {
+  async getCompletedWorkouts(userId: number) {
     return this.prismaService.workout.findMany({
-      where: { userId },
+      where: { userId, completedAt: { not: null } },
       include: {
         workoutExercises: {
           include: {

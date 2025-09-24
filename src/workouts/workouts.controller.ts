@@ -24,8 +24,8 @@ export class WorkoutsController {
   constructor(private workoutsService: WorkoutsService) {}
 
   @Get()
-  getAllWorkouts(@CurrentUser() user: AuthUser) {
-    return this.workoutsService.getAllWorkouts(user.id);
+  getCompletedWorkouts(@CurrentUser() user: AuthUser) {
+    return this.workoutsService.getCompletedWorkouts(user.id);
   }
 
   @Get('active')
