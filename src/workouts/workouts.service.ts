@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
 import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
@@ -23,9 +27,19 @@ export class WorkoutsService {
     });
   }
 
-  async getCompletedWorkouts(userId: number) {
-    return this.prismaService.workout.findMany({
+  async getCompletedWorkouts(
+    userId: number,
+    options?: {
+      cursor?: number;
+    },
+  ) {
+    const WORKOUT_LIMIT = 5;
+
+    const workouts = await this.prismaService.workout.findMany({
       where: { userId, completedAt: { not: null } },
+      take: WORKOUT_LIMIT + 1,
+      orderBy: { completedAt: 'desc' },
+      ...(options?.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
       include: {
         workoutExercises: {
           include: {
@@ -34,6 +48,21 @@ export class WorkoutsService {
           },
         },
       },
+    });
+
+    const hasMore = workouts.length > WORKOUT_LIMIT;
+    const results = workouts.slice(0, WORKOUT_LIMIT);
+    const nextCursor = hasMore ? results[results.length - 1].id : null;
+
+    return {
+      results,
+      nextCursor,
+    };
+  }
+
+  async getCompletedWorkoutsCount(userId: number) {
+    return this.prismaService.workout.count({
+      where: { userId, completedAt: { not: null } },
     });
   }
 
@@ -42,9 +71,10 @@ export class WorkoutsService {
       where: { userId, completedAt: null },
       include: {
         workoutExercises: {
+          orderBy: { createdAt: 'asc' },
           include: {
             exercise: true,
-            workoutSets: true,
+            workoutSets: { orderBy: { createdAt: 'asc' } },
           },
         },
       },
@@ -52,7 +82,11 @@ export class WorkoutsService {
     });
   }
 
-  async createWorkout(userId: number) {
+  async createActiveWorkout(userId: number) {
+    const foundWorkout = await this.getActiveWorkout(userId);
+    if (foundWorkout)
+      throw new ConflictException('Already have an active workout');
+
     const today = new Date();
     const title = today.toLocaleDateString('en-US', {
       month: 'long',

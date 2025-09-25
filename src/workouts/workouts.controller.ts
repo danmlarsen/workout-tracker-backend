@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { WorkoutsService } from './workouts.service';
@@ -24,8 +25,16 @@ export class WorkoutsController {
   constructor(private workoutsService: WorkoutsService) {}
 
   @Get()
-  getCompletedWorkouts(@CurrentUser() user: AuthUser) {
-    return this.workoutsService.getCompletedWorkouts(user.id);
+  getCompletedWorkouts(
+    @CurrentUser() user: AuthUser,
+    @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
+  ) {
+    return this.workoutsService.getCompletedWorkouts(user.id, { cursor });
+  }
+
+  @Get('count')
+  getCompletedWorkoutsCount(@CurrentUser() user: AuthUser) {
+    return this.workoutsService.getCompletedWorkoutsCount(user.id);
   }
 
   @Get('active')
@@ -41,9 +50,9 @@ export class WorkoutsController {
     return this.workoutsService.getWorkout(workoutId, user.id);
   }
 
-  @Post()
+  @Post('active')
   createWorkout(@CurrentUser() user: AuthUser) {
-    return this.workoutsService.createWorkout(user.id);
+    return this.workoutsService.createActiveWorkout(user.id);
   }
 
   @Post(':workoutId/complete')
