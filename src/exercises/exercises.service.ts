@@ -11,20 +11,61 @@ export class ExercisesService {
     return this.prismaService.exercise.create({ data: { ...data, userId } });
   }
 
-  findAllExercises(userId: number) {
-    return this.prismaService.exercise.findMany({
+  async findAllExercises(userId: number) {
+    const exercises = await this.prismaService.exercise.findMany({
       where: {
         OR: [{ userId }, { userId: null }],
       },
+      include: {
+        _count: {
+          select: {
+            workoutExercises: {
+              where: {
+                workout: {
+                  userId: userId,
+                },
+              },
+            },
+          },
+        },
+      },
     });
+
+    return exercises.map(({ _count, ...exercise }) => ({
+      ...exercise,
+      timesUsed: _count.workoutExercises,
+    }));
   }
 
-  findExerciseById(userId: number, exerciseId: number) {
-    return this.prismaService.exercise.findFirst({
+  async findExerciseById(userId: number, exerciseId: number) {
+    const exercise = await this.prismaService.exercise.findFirst({
       where: {
         AND: [{ id: exerciseId }, { OR: [{ userId }, { userId: null }] }],
       },
+      include: {
+        _count: {
+          select: {
+            workoutExercises: {
+              where: {
+                workout: {
+                  userId: userId,
+                },
+              },
+            },
+          },
+        },
+      },
     });
+
+    if (!exercise)
+      throw new NotFoundException('found no exercise with this id');
+
+    const { _count, ...filteredExercise } = exercise;
+
+    return {
+      ...filteredExercise,
+      timesUsed: _count.workoutExercises,
+    };
   }
 
   async updateExercise(
