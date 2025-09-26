@@ -30,7 +30,7 @@ model Exercise {
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int?
   type String
-  muscleGroup String
+  muscleGroups String[]
   equipment String
   image String?
   workoutExercises WorkoutExercise[]
