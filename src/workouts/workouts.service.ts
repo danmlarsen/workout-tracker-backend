@@ -71,10 +71,10 @@ export class WorkoutsService {
       where: { userId, completedAt: null },
       include: {
         workoutExercises: {
-          orderBy: { createdAt: 'asc' },
+          orderBy: { exerciseOrder: 'asc' },
           include: {
             exercise: true,
-            workoutSets: { orderBy: { createdAt: 'asc' } },
+            workoutSets: { orderBy: { setNumber: 'asc' } },
           },
         },
       },
@@ -88,11 +88,11 @@ export class WorkoutsService {
       throw new ConflictException('Already have an active workout');
 
     const today = new Date();
-    const title = today.toLocaleDateString('en-US', {
+    const dayTitle = today.toLocaleDateString('en-US', {
       month: 'long',
       day: 'numeric',
-      year: 'numeric',
     });
+    const title = `${dayTitle} Workout`;
 
     return this.prismaService.workout.create({
       data: { title, userId },
@@ -134,8 +134,20 @@ export class WorkoutsService {
 
     if (!workout) throw new ForbiddenException('Not allowed');
 
+    const maxOrder: { _max: { exerciseOrder: number | null } } =
+      await this.prismaService.workoutExercise.aggregate({
+        where: { workoutId },
+        _max: { exerciseOrder: true },
+      });
+
+    const nextOrder = (maxOrder._max.exerciseOrder ?? 0) + 1;
+
     return this.prismaService.workoutExercise.create({
-      data: { workoutId, exerciseId: data.exerciseId },
+      data: {
+        workoutId,
+        exerciseId: data.exerciseId,
+        exerciseOrder: nextOrder,
+      },
     });
   }
 
@@ -176,8 +188,16 @@ export class WorkoutsService {
       throw new ForbiddenException('Not allowed');
     }
 
+    const maxSetNumber: { _max: { setNumber: number | null } } =
+      await this.prismaService.workoutSet.aggregate({
+        where: { workoutExerciseId },
+        _max: { setNumber: true },
+      });
+
+    const nextSetNumber = (maxSetNumber._max.setNumber ?? 0) + 1;
+
     return this.prismaService.workoutSet.create({
-      data: { ...data, workoutExerciseId },
+      data: { ...data, workoutExerciseId, setNumber: nextSetNumber },
     });
   }
 

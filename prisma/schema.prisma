@@ -55,6 +55,7 @@ model WorkoutExercise {
   workoutId Int
   exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
   exerciseId Int
+  exerciseOrder Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   workoutSets WorkoutSet[]
@@ -64,6 +65,7 @@ model WorkoutSet {
   id Int @default(autoincrement()) @id
   workoutExercise WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
   workoutExerciseId Int
+  setNumber Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   completedAt DateTime?

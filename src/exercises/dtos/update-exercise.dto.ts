@@ -1,15 +1,28 @@
-import { IsString } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
+  IsNotEmpty,
+  IsString,
+} from 'class-validator';
 
 export class UpdateExerciseDto {
   @IsString()
+  @IsNotEmpty()
   name: string;
 
   @IsString()
+  @IsNotEmpty()
   type: string;
 
-  @IsString()
-  muscleGroup: string;
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(5)
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  muscleGroups: string[];
 
   @IsString()
+  @IsNotEmpty()
   equipment: string;
 }
