@@ -147,6 +147,14 @@ export class WorkoutsService {
         workoutId,
         exerciseId: data.exerciseId,
         exerciseOrder: nextOrder,
+        workoutSets: {
+          create: {
+            setNumber: 1,
+          },
+        },
+      },
+      include: {
+        workoutSets: true,
       },
     });
   }
