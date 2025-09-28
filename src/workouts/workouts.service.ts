@@ -106,16 +106,18 @@ export class WorkoutsService {
 
     if (!workout) throw new ForbiddenException('Not allowed');
 
+    const now = new Date();
+
     return this.prismaService.workout.update({
       where: { id: workoutId },
-      data: { completedAt: new Date() },
+      data: { completedAt: now, updatedAt: now },
     });
   }
 
   async updateWorkout(id: number, userId: number, data: UpdateWorkoutDto) {
     return this.prismaService.workout.update({
       where: { id, userId },
-      data,
+      data: { ...data, updatedAt: new Date() },
     });
   }
 
@@ -239,7 +241,7 @@ export class WorkoutsService {
 
     return this.prismaService.workoutSet.update({
       where: { id },
-      data: updateData,
+      data: { ...updateData, updatedAt: new Date() },
     });
   }
 }
