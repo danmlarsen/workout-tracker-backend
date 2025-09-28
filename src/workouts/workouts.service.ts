@@ -163,8 +163,6 @@ export class WorkoutsService {
       },
     );
 
-    console.log(workoutExercise);
-
     if (!workoutExercise || workoutExercise.workout.userId !== userId) {
       throw new ForbiddenException('Not allowed');
     }
@@ -223,7 +221,9 @@ export class WorkoutsService {
 
     if (data.completed) {
       updateData.completedAt = new Date();
-    } else {
+    }
+
+    if (data.completed === false) {
       updateData.completedAt = null;
     }
 
