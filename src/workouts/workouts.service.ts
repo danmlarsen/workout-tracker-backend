@@ -18,9 +18,18 @@ export class WorkoutsService {
       where: { id, userId },
       include: {
         workoutExercises: {
+          orderBy: { exerciseOrder: 'asc' },
           include: {
             exercise: true,
-            workoutSets: true,
+            workoutSets: { orderBy: { setNumber: 'asc' } },
+            previousWorkoutExercise: {
+              include: {
+                workoutSets: {
+                  where: { completedAt: { not: null } },
+                  orderBy: { setNumber: 'asc' },
+                },
+              },
+            },
           },
         },
       },
@@ -42,9 +51,18 @@ export class WorkoutsService {
       ...(options?.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
       include: {
         workoutExercises: {
+          orderBy: { exerciseOrder: 'asc' },
           include: {
             exercise: true,
-            workoutSets: true,
+            workoutSets: { orderBy: { setNumber: 'asc' } },
+            previousWorkoutExercise: {
+              include: {
+                workoutSets: {
+                  where: { completedAt: { not: null } },
+                  orderBy: { setNumber: 'asc' },
+                },
+              },
+            },
           },
         },
       },
@@ -75,6 +93,14 @@ export class WorkoutsService {
           include: {
             exercise: true,
             workoutSets: { orderBy: { setNumber: 'asc' } },
+            previousWorkoutExercise: {
+              include: {
+                workoutSets: {
+                  where: { completedAt: { not: null } },
+                  orderBy: { setNumber: 'asc' },
+                },
+              },
+            },
           },
         },
       },
@@ -144,15 +170,27 @@ export class WorkoutsService {
 
     const nextOrder = (maxOrder._max.exerciseOrder ?? 0) + 1;
 
+    const previousWorkoutExercise = await this.findPreviousWorkoutExercise(
+      userId,
+      data.exerciseId,
+    );
+
+    // Create sets based on previous structure or default to single set
+    const setsToCreate =
+      previousWorkoutExercise && previousWorkoutExercise.workoutSets.length > 0
+        ? previousWorkoutExercise.workoutSets.map((_, index) => ({
+            setNumber: index + 1,
+          }))
+        : [{ setNumber: 1 }];
+
     return this.prismaService.workoutExercise.create({
       data: {
         workoutId,
         exerciseId: data.exerciseId,
         exerciseOrder: nextOrder,
+        previousWorkoutExerciseId: previousWorkoutExercise?.id,
         workoutSets: {
-          create: {
-            setNumber: 1,
-          },
+          create: setsToCreate,
         },
       },
       include: {
@@ -242,6 +280,32 @@ export class WorkoutsService {
     return this.prismaService.workoutSet.update({
       where: { id },
       data: { ...updateData, updatedAt: new Date() },
+    });
+  }
+
+  private async findPreviousWorkoutExercise(
+    userId: number,
+    exerciseId: number,
+  ): Promise<{ id: number; workoutSets: { setNumber: number }[] } | null> {
+    return this.prismaService.workoutExercise.findFirst({
+      where: {
+        exerciseId,
+        workout: {
+          userId,
+          completedAt: { not: null },
+        },
+      },
+      include: {
+        workoutSets: {
+          where: { completedAt: { not: null } },
+          orderBy: { setNumber: 'asc' },
+        },
+      },
+      orderBy: {
+        workout: {
+          completedAt: 'desc',
+        },
+      },
     });
   }
 }
