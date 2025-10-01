@@ -17,7 +17,7 @@ import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import {
-  ACCESS_TOKEN_COOKIE,
+  // ACCESS_TOKEN_COOKIE,
   REFRESH_TOKEN_COOKIE,
 } from 'src/common/constants';
 import { type AuthUser } from 'src/common/types/auth-user.interface';
@@ -93,10 +93,15 @@ export class AuthController {
     return { access_token };
   }
 
-  @UseGuards(LocalAuthGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {
-    res.clearCookie(ACCESS_TOKEN_COOKIE, {
+    // res.clearCookie(ACCESS_TOKEN_COOKIE, {
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === 'production',
+    //   sameSite: 'lax',
+    // });
+    res.clearCookie(REFRESH_TOKEN_COOKIE, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
