@@ -42,15 +42,15 @@ export class AuthController {
   ) {
     const { access_token, refresh_token } = await this.authService.login(user);
 
-    res.cookie(ACCESS_TOKEN_COOKIE, access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: ms(
-        (this.configService.get<string>('JWT_EXP') ||
-          '15m') as unknown as StringValue,
-      ),
-    });
+    // res.cookie(ACCESS_TOKEN_COOKIE, access_token, {
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === 'production',
+    //   sameSite: 'lax',
+    //   maxAge: ms(
+    //     (this.configService.get<string>('JWT_EXP') ||
+    //       '15m') as unknown as StringValue,
+    //   ),
+    // });
 
     res.cookie(REFRESH_TOKEN_COOKIE, refresh_token, {
       httpOnly: true,
@@ -72,7 +72,7 @@ export class AuthController {
       cookies?: { refresh_token?: string };
       body?: { refresh_token?: string };
     },
-    @Res({ passthrough: true }) res: Response,
+    // @Res({ passthrough: true }) res: Response,
   ) {
     const refresh_token = req.cookies?.refresh_token || req.body?.refresh_token;
     if (!refresh_token) throw new UnauthorizedException('No refresh token');
@@ -80,15 +80,15 @@ export class AuthController {
     const { access_token } =
       await this.authService.refreshTokens(refresh_token);
 
-    res.cookie(ACCESS_TOKEN_COOKIE, access_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: ms(
-        (this.configService.get<string>('JWT_EXP') ||
-          '15m') as unknown as StringValue,
-      ),
-    });
+    // res.cookie(ACCESS_TOKEN_COOKIE, access_token, {
+    //   httpOnly: true,
+    //   secure: process.env.NODE_ENV === 'production',
+    //   sameSite: 'lax',
+    //   maxAge: ms(
+    //     (this.configService.get<string>('JWT_EXP') ||
+    //       '15m') as unknown as StringValue,
+    //   ),
+    // });
 
     return { access_token };
   }
