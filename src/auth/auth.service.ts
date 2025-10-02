@@ -23,7 +23,7 @@ export class AuthService {
 
   async registerUser(data: RegisterUserDto) {
     const foundUser = await this.usersService.getUser({ email: data.email });
-    if (foundUser) throw new ConflictException('email is already in use');
+    if (foundUser) throw new ConflictException('Email is already in use');
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
