@@ -72,13 +72,26 @@ export class AuthController {
       cookies?: { refresh_token?: string };
       body?: { refresh_token?: string };
     },
-    // @Res({ passthrough: true }) res: Response,
+    @Res({ passthrough: true }) res: Response,
   ) {
     const refresh_token = req.cookies?.refresh_token || req.body?.refresh_token;
-    if (!refresh_token) throw new UnauthorizedException('No refresh token');
+    if (!refresh_token) {
+      throw new UnauthorizedException('Refresh token required');
+    }
 
-    const { access_token } =
-      await this.authService.refreshTokens(refresh_token);
+    try {
+      const { access_token } =
+        await this.authService.refreshTokens(refresh_token);
+      return { access_token };
+    } catch {
+      res.clearCookie(REFRESH_TOKEN_COOKIE, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+      });
+
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
 
     // res.cookie(ACCESS_TOKEN_COOKIE, access_token, {
     //   httpOnly: true,
@@ -90,7 +103,7 @@ export class AuthController {
     //   ),
     // });
 
-    return { access_token };
+    // return { access_token };
   }
 
   @UseGuards(JwtAuthGuard)
