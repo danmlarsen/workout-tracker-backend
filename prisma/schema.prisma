@@ -22,6 +22,7 @@ model User {
   refreshToken String?
   workouts Workout[]
   exercises Exercise[]
+  personalRecords PersonalRecord[]
 }
 
 model Exercise {
@@ -34,6 +35,7 @@ model Exercise {
   equipment String
   image String?
   workoutExercises WorkoutExercise[]
+  personalRecords PersonalRecord[]
 
   @@unique([name, userId, equipment])
 }
@@ -75,4 +77,18 @@ model WorkoutSet {
   reps Int?
   weight Float?
   duration Int?
+  personalRecords PersonalRecord[]
+}
+
+model PersonalRecord {
+  id Int @default(autoincrement()) @id
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  exerciseId Int
+  recordType String
+  createdAt DateTime @default(now())
+  workoutSet WorkoutSet @relation(fields: [workoutSetId], references: [id], onDelete: Cascade)
+  workoutSetId Int
+  @@unique([userId, exerciseId, recordType])
 }
