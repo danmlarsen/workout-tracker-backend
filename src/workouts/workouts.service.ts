@@ -291,6 +291,57 @@ export class WorkoutsService {
     });
   }
 
+  async getWorkoutStats(userId: number) {
+    const [totalWorkouts, hoursResult, weightResult] = await Promise.all([
+      // Total workouts count
+      this.prismaService.workout.count({
+        where: {
+          userId,
+          completedAt: { not: null },
+        },
+      }),
+
+      // Total workout hours
+      this.prismaService.$queryRaw<[{ total_hours: number }]>`
+      SELECT 
+        COALESCE(
+          SUM(
+            EXTRACT(EPOCH FROM ("completedAt" - "createdAt")) / 3600
+          ), 
+          0
+        ) as total_hours
+      FROM "Workout" 
+      WHERE "userId" = ${userId} 
+        AND "completedAt" IS NOT NULL 
+        AND "createdAt" IS NOT NULL
+    `,
+
+      // Total weight lifted
+      this.prismaService.$queryRaw<[{ total_weight: number }]>`
+      SELECT 
+        COALESCE(
+          SUM(ws.weight * ws.reps), 
+          0
+        ) as total_weight
+      FROM "WorkoutSet" ws
+      INNER JOIN "WorkoutExercise" we ON ws."workoutExerciseId" = we.id
+      INNER JOIN "Workout" w ON we."workoutId" = w.id
+      WHERE w."userId" = ${userId}
+        AND w."completedAt" IS NOT NULL
+        AND ws."completedAt" IS NOT NULL
+        AND ws.weight IS NOT NULL
+        AND ws.reps IS NOT NULL
+    `,
+    ]);
+
+    return {
+      totalWorkouts,
+      totalHours: Math.round((hoursResult[0]?.total_hours || 0) * 100) / 100,
+      totalWeightLifted:
+        Math.round((weightResult[0]?.total_weight || 0) * 100) / 100,
+    };
+  }
+
   private async findPreviousWorkoutExercise(
     userId: number,
     exerciseId: number,

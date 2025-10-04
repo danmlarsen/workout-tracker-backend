@@ -37,6 +37,11 @@ export class WorkoutsController {
     return this.workoutsService.getCompletedWorkoutsCount(user.id);
   }
 
+  @Get('stats')
+  getWorkoutStats(@CurrentUser() user: AuthUser) {
+    return this.workoutsService.getWorkoutStats(user.id);
+  }
+
   @Get('active')
   getActiveWorkout(@CurrentUser() user: AuthUser) {
     return this.workoutsService.getActiveWorkout(user.id);
