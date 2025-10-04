@@ -51,7 +51,7 @@ export class WorkoutsController {
   }
 
   @Post('active')
-  createWorkout(@CurrentUser() user: AuthUser) {
+  createActiveWorkout(@CurrentUser() user: AuthUser) {
     return this.workoutsService.createActiveWorkout(user.id);
   }
 
@@ -61,6 +61,11 @@ export class WorkoutsController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.workoutsService.completeWorkout(user.id, workoutId);
+  }
+
+  @Delete('active')
+  deleteActiveWorkout(@CurrentUser() user: AuthUser) {
+    return this.workoutsService.deleteActiveWorkout(user.id);
   }
 
   @Patch(':workoutId')

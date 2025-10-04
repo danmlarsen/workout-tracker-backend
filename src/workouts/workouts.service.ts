@@ -42,7 +42,7 @@ export class WorkoutsService {
       cursor?: number;
     },
   ) {
-    const WORKOUT_LIMIT = 5;
+    const WORKOUT_LIMIT = 10;
 
     const workouts = await this.prismaService.workout.findMany({
       where: { userId, completedAt: { not: null } },
@@ -138,6 +138,14 @@ export class WorkoutsService {
       where: { id: workoutId },
       data: { completedAt: now, updatedAt: now },
     });
+  }
+
+  async deleteActiveWorkout(userId: number) {
+    const workout = await this.getActiveWorkout(userId);
+
+    if (!workout) throw new ForbiddenException('Not allowed');
+
+    return this.prismaService.workout.delete({ where: { id: workout.id } });
   }
 
   async updateWorkout(id: number, userId: number, data: UpdateWorkoutDto) {
