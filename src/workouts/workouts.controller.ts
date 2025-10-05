@@ -37,6 +37,14 @@ export class WorkoutsController {
     return this.workoutsService.getCompletedWorkoutsCount(user.id);
   }
 
+  @Get('calendar')
+  getWorkoutCalendar(
+    @CurrentUser() user: AuthUser,
+    @Query('year', new ParseIntPipe()) year: number,
+  ) {
+    return this.workoutsService.getWorkoutCalendar(user.id, year);
+  }
+
   @Get('stats')
   getWorkoutStats(@CurrentUser() user: AuthUser) {
     return this.workoutsService.getWorkoutStats(user.id);

@@ -342,6 +342,26 @@ export class WorkoutsService {
     };
   }
 
+  async getWorkoutCalendar(userId: number, year: number) {
+    const workouts = await this.prismaService.$queryRaw<
+      Array<{ id: number; completedAt: Date }>
+    >`
+    SELECT id, "completedAt"
+    FROM "Workout"
+    WHERE "userId" = ${userId}
+      AND "completedAt" IS NOT NULL
+      AND EXTRACT(YEAR FROM "completedAt") = ${year}
+    ORDER BY "completedAt" ASC
+  `;
+
+    return {
+      workoutDates: workouts.map(
+        (workout) => workout.completedAt.toISOString().split('T')[0],
+      ),
+      totalWorkouts: workouts.length,
+    };
+  }
+
   private async findPreviousWorkoutExercise(
     userId: number,
     exerciseId: number,
