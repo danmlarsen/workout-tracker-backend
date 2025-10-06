@@ -28,8 +28,9 @@ export class WorkoutsController {
   getCompletedWorkouts(
     @CurrentUser() user: AuthUser,
     @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
+    @Query('date') date?: string,
   ) {
-    return this.workoutsService.getCompletedWorkouts(user.id, { cursor });
+    return this.workoutsService.getCompletedWorkouts(user.id, { cursor, date });
   }
 
   @Get('count')

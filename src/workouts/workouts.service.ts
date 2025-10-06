@@ -40,12 +40,33 @@ export class WorkoutsService {
     userId: number,
     options?: {
       cursor?: number;
+      date?: string;
     },
   ) {
     const WORKOUT_LIMIT = 10;
 
+    const whereClause = {
+      userId,
+      completedAt: { not: null },
+      createdAt: {},
+    };
+
+    if (options?.date) {
+      const targetDate = new Date(options.date);
+      const startOfDay = new Date(targetDate);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(targetDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      whereClause.createdAt = {
+        gte: startOfDay,
+        lte: endOfDay,
+      };
+    }
+
     const workouts = await this.prismaService.workout.findMany({
-      where: { userId, completedAt: { not: null } },
+      where: whereClause,
       take: WORKOUT_LIMIT + 1,
       orderBy: { completedAt: 'desc' },
       ...(options?.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
