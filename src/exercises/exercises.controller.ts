@@ -58,4 +58,12 @@ export class ExercisesController {
   ) {
     return this.exercisesService.deleteExercise(user.id, exerciseId);
   }
+
+  @Get(':exerciseId/workouts')
+  getExerciseWorkouts(
+    @CurrentUser() user: AuthUser,
+    @Param('exerciseId', ParseIntPipe) exerciseId: number,
+  ) {
+    return this.exercisesService.getExerciseWorkouts(user.id, exerciseId);
+  }
 }

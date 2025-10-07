@@ -96,4 +96,35 @@ export class ExercisesService {
       where: { id: exerciseId },
     });
   }
+
+  async getExerciseWorkouts(userId: number, exerciseId: number) {
+    const workouts = await this.prismaService.workout.findMany({
+      where: {
+        userId,
+        workoutExercises: {
+          some: {
+            exerciseId,
+          },
+        },
+      },
+      include: {
+        workoutExercises: {
+          where: { exerciseId },
+          select: {
+            workoutSets: {
+              orderBy: { setNumber: 'asc' },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return workouts.map(({ workoutExercises, ...workout }) => ({
+      ...workout,
+      workoutSets: workoutExercises[0]?.workoutSets || [],
+    }));
+  }
 }
