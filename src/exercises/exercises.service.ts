@@ -11,11 +11,25 @@ export class ExercisesService {
     return this.prismaService.exercise.create({ data: { ...data, userId } });
   }
 
-  async findAllExercises(userId: number) {
+  async findAllExercises(
+    userId: number,
+    options?: {
+      cursor?: number;
+      filters?: {
+        name?: string;
+        muscleGroups?: string[];
+        equipment?: string[];
+      };
+    },
+  ) {
+    const EXERCISE_LIMIT = 10;
+
     const exercises = await this.prismaService.exercise.findMany({
       where: {
         OR: [{ userId }, { userId: null }],
       },
+      take: EXERCISE_LIMIT + 1,
+      ...(options?.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
       include: {
         _count: {
           select: {
