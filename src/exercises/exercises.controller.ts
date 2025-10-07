@@ -7,6 +7,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ExercisesService } from './exercises.service';
@@ -63,7 +64,10 @@ export class ExercisesController {
   getExerciseWorkouts(
     @CurrentUser() user: AuthUser,
     @Param('exerciseId', ParseIntPipe) exerciseId: number,
+    @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
   ) {
-    return this.exercisesService.getExerciseWorkouts(user.id, exerciseId);
+    return this.exercisesService.getExerciseWorkouts(user.id, exerciseId, {
+      cursor,
+    });
   }
 }

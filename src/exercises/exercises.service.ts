@@ -97,21 +97,31 @@ export class ExercisesService {
     });
   }
 
-  async getExerciseWorkouts(userId: number, exerciseId: number) {
+  async getExerciseWorkouts(
+    userId: number,
+    exerciseId: number,
+    options?: { cursor?: number },
+  ) {
+    const WORKOUT_LIMIT = 10;
+
     const workouts = await this.prismaService.workout.findMany({
       where: {
         userId,
+        completedAt: { not: null },
         workoutExercises: {
           some: {
             exerciseId,
           },
         },
       },
+      take: WORKOUT_LIMIT + 1,
+      ...(options?.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
       include: {
         workoutExercises: {
           where: { exerciseId },
           select: {
             workoutSets: {
+              where: { completedAt: { not: null } },
               orderBy: { setNumber: 'asc' },
             },
           },
@@ -122,9 +132,20 @@ export class ExercisesService {
       },
     });
 
-    return workouts.map(({ workoutExercises, ...workout }) => ({
-      ...workout,
-      workoutSets: workoutExercises[0]?.workoutSets || [],
-    }));
+    const hasMore = workouts.length > WORKOUT_LIMIT;
+    const results = workouts.slice(0, WORKOUT_LIMIT);
+    const nextCursor = hasMore ? results[results.length - 1].id : null;
+
+    const flattenedWorkouts = workouts.map(
+      ({ workoutExercises, ...workout }) => ({
+        ...workout,
+        workoutSets: workoutExercises[0]?.workoutSets || [],
+      }),
+    );
+
+    return {
+      results: flattenedWorkouts,
+      nextCursor,
+    };
   }
 }
