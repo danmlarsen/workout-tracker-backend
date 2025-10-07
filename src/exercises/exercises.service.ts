@@ -26,7 +26,40 @@ export class ExercisesService {
 
     const exercises = await this.prismaService.exercise.findMany({
       where: {
-        OR: [{ userId }, { userId: null }],
+        AND: [
+          { OR: [{ userId }, { userId: null }] },
+          // Name filter - case insensitive partial match
+          ...(options?.filters?.name
+            ? [
+                {
+                  name: {
+                    contains: options.filters.name,
+                    mode: 'insensitive' as const,
+                  },
+                },
+              ]
+            : []),
+          // Muscle groups filter - array contains any of the specified groups
+          ...(options?.filters?.muscleGroups?.length
+            ? [
+                {
+                  muscleGroups: {
+                    hasSome: options.filters.muscleGroups,
+                  },
+                },
+              ]
+            : []),
+          // Equipment filter - matches any of the specified equipment
+          ...(options?.filters?.equipment?.length
+            ? [
+                {
+                  equipment: {
+                    in: options.filters.equipment,
+                  },
+                },
+              ]
+            : []),
+        ],
       },
       take: EXERCISE_LIMIT + 1,
       ...(options?.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),

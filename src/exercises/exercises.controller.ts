@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseArrayPipe,
   ParseIntPipe,
   Patch,
   Post,
@@ -23,8 +24,19 @@ export class ExercisesController {
   constructor(private readonly exercisesService: ExercisesService) {}
 
   @Get()
-  getAllExercises(@CurrentUser() user: AuthUser) {
-    return this.exercisesService.findAllExercises(user.id);
+  getAllExercises(
+    @CurrentUser() user: AuthUser,
+    @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
+    @Query('name') name?: string,
+    @Query('muscleGroups', new ParseArrayPipe({ optional: true }))
+    muscleGroups?: string[],
+    @Query('equipment', new ParseArrayPipe({ optional: true }))
+    equipment?: string[],
+  ) {
+    return this.exercisesService.findAllExercises(user.id, {
+      cursor,
+      filters: { name, muscleGroups, equipment },
+    });
   }
 
   @Get(':exerciseId')
