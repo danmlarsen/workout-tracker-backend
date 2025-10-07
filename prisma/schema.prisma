@@ -74,6 +74,7 @@ model WorkoutSet {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   completedAt DateTime?
+  type String @default("normal")
   reps Int?
   weight Float?
   duration Int?
