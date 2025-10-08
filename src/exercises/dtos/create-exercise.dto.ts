@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -20,9 +21,13 @@ export class CreateExerciseDto {
   @ArrayMaxSize(5)
   @IsString({ each: true })
   @IsNotEmpty({ each: true })
+  @Transform(({ value }: { value: string[] }) =>
+    value.map((item: string) => item.toLowerCase()),
+  )
   muscleGroups: string[];
 
   @IsString()
   @IsNotEmpty()
+  @Transform(({ value }: { value: string }) => value.toLowerCase())
   equipment: string;
 }
