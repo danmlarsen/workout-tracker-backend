@@ -78,10 +78,19 @@ export class ExercisesService {
       },
     });
 
-    return exercises.map(({ _count, ...exercise }) => ({
+    const exercisesWithTimesUsed = exercises.map(({ _count, ...exercise }) => ({
       ...exercise,
       timesUsed: _count.workoutExercises,
     }));
+
+    const hasMore = exercisesWithTimesUsed.length > EXERCISE_LIMIT;
+    const results = exercisesWithTimesUsed.slice(0, EXERCISE_LIMIT);
+    const nextCursor = hasMore ? results[results.length - 1].id : null;
+
+    return {
+      results,
+      nextCursor,
+    };
   }
 
   async findExerciseById(userId: number, exerciseId: number) {
