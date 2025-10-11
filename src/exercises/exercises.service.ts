@@ -163,7 +163,7 @@ export class ExercisesService {
     const workouts = await this.prismaService.workout.findMany({
       where: {
         userId,
-        completedAt: { not: null },
+        status: 'COMPLETED',
         workoutExercises: {
           some: {
             exerciseId,
@@ -175,7 +175,7 @@ export class ExercisesService {
       include: {
         workoutExercises: {
           where: { exerciseId },
-          select: {
+          include: {
             workoutSets: {
               where: { completedAt: { not: null } },
               orderBy: { setNumber: 'asc' },
@@ -190,12 +190,14 @@ export class ExercisesService {
 
     const hasMore = workouts.length > WORKOUT_LIMIT;
     const results = workouts.slice(0, WORKOUT_LIMIT);
-    const nextCursor = hasMore ? results[results.length - 1].id : null;
+    const nextCursor =
+      hasMore && results.length > 0 ? results[results.length - 1]?.id : null;
 
-    const flattenedWorkouts = workouts.map(
+    const flattenedWorkouts = results.map(
       ({ workoutExercises, ...workout }) => ({
         ...workout,
-        workoutSets: workoutExercises[0]?.workoutSets || [],
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        workoutSets: workoutExercises[0] || [],
       }),
     );
 

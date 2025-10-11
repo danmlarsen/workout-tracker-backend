@@ -8,6 +8,7 @@ import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
 import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
 import { UpdateWorkoutDto } from './dtos/update-workout.dto';
 import { UpdateWorkoutSetDto } from './dtos/update-workout-set.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class WorkoutsService {
@@ -45,9 +46,9 @@ export class WorkoutsService {
   ) {
     const WORKOUT_LIMIT = 10;
 
-    const whereClause = {
+    const whereClause: Prisma.WorkoutWhereInput = {
       userId,
-      completedAt: { not: null },
+      status: 'COMPLETED',
       createdAt: {},
     };
 
@@ -101,13 +102,13 @@ export class WorkoutsService {
 
   async getCompletedWorkoutsCount(userId: number) {
     return this.prismaService.workout.count({
-      where: { userId, completedAt: { not: null } },
+      where: { userId, status: 'COMPLETED' },
     });
   }
 
   async getActiveWorkout(userId: number) {
     return this.prismaService.workout.findFirst({
-      where: { userId, completedAt: null },
+      where: { userId, status: 'ACTIVE' },
       include: {
         workoutExercises: {
           orderBy: { exerciseOrder: 'asc' },
@@ -142,13 +143,13 @@ export class WorkoutsService {
     const title = `${dayTitle} Workout`;
 
     return this.prismaService.workout.create({
-      data: { title, userId },
+      data: { title, userId, status: 'ACTIVE' },
     });
   }
 
   async completeWorkout(userId: number, workoutId: number) {
     const workout = await this.prismaService.workout.findFirst({
-      where: { id: workoutId, userId, completedAt: null },
+      where: { id: workoutId, userId, status: 'ACTIVE' },
     });
 
     if (!workout) throw new ForbiddenException('Not allowed');
@@ -157,7 +158,7 @@ export class WorkoutsService {
 
     return this.prismaService.workout.update({
       where: { id: workoutId },
-      data: { completedAt: now, updatedAt: now },
+      data: { status: 'COMPLETED', completedAt: now, updatedAt: now },
     });
   }
 
@@ -318,7 +319,7 @@ export class WorkoutsService {
       this.prismaService.workout.count({
         where: {
           userId,
-          completedAt: { not: null },
+          status: 'COMPLETED',
         },
       }),
 
@@ -333,6 +334,7 @@ export class WorkoutsService {
         ) as total_hours
       FROM "Workout" 
       WHERE "userId" = ${userId} 
+        AND "status" = 'COMPLETED'
         AND "completedAt" IS NOT NULL 
         AND "createdAt" IS NOT NULL
     `,
@@ -348,7 +350,7 @@ export class WorkoutsService {
       INNER JOIN "WorkoutExercise" we ON ws."workoutExerciseId" = we.id
       INNER JOIN "Workout" w ON we."workoutId" = w.id
       WHERE w."userId" = ${userId}
-        AND w."completedAt" IS NOT NULL
+        AND w."status" = 'COMPLETED'
         AND ws."completedAt" IS NOT NULL
         AND ws.weight IS NOT NULL
         AND ws.reps IS NOT NULL
@@ -365,19 +367,19 @@ export class WorkoutsService {
 
   async getWorkoutCalendar(userId: number, year: number) {
     const workouts = await this.prismaService.$queryRaw<
-      Array<{ id: number; completedAt: Date }>
+      Array<{ id: number; createdAt: Date }>
     >`
-    SELECT id, "completedAt"
+    SELECT id, "createdAt"
     FROM "Workout"
     WHERE "userId" = ${userId}
-      AND "completedAt" IS NOT NULL
-      AND EXTRACT(YEAR FROM "completedAt") = ${year}
-    ORDER BY "completedAt" ASC
+      AND "createdAt" IS NOT NULL
+      AND EXTRACT(YEAR FROM "createdAt") = ${year}
+    ORDER BY "createdAt" ASC
   `;
 
     return {
       workoutDates: workouts.map(
-        (workout) => workout.completedAt.toISOString().split('T')[0],
+        (workout) => workout.createdAt.toISOString().split('T')[0],
       ),
       totalWorkouts: workouts.length,
     };
@@ -392,7 +394,7 @@ export class WorkoutsService {
         exerciseId,
         workout: {
           userId,
-          completedAt: { not: null },
+          status: 'COMPLETED',
         },
       },
       include: {
