@@ -10,7 +10,6 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { WorkoutsService } from './workouts.service';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
 import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
 import { UpdateWorkoutDto } from './dtos/update-workout.dto';
@@ -18,11 +17,20 @@ import { UpdateWorkoutSetDto } from './dtos/update-workout-set.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
 import { type AuthUser } from 'src/common/types/auth-user.interface';
+import { WorkoutManagementService } from './workout-management.service';
+import { WorkoutExerciseService } from './workout-exercise.service';
+import { WorkoutSetService } from './workout-set.service';
+import { WorkoutQueryService } from './workout-query.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workouts')
 export class WorkoutsController {
-  constructor(private workoutsService: WorkoutsService) {}
+  constructor(
+    private readonly workoutManagement: WorkoutManagementService,
+    private readonly workoutExercise: WorkoutExerciseService,
+    private readonly workoutSet: WorkoutSetService,
+    private readonly workoutQuery: WorkoutQueryService,
+  ) {}
 
   @Get()
   getCompletedWorkouts(
@@ -30,12 +38,12 @@ export class WorkoutsController {
     @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
     @Query('date') date?: string,
   ) {
-    return this.workoutsService.getCompletedWorkouts(user.id, { cursor, date });
+    return this.workoutQuery.getCompletedWorkouts(user.id, { cursor, date });
   }
 
   @Get('count')
   getCompletedWorkoutsCount(@CurrentUser() user: AuthUser) {
-    return this.workoutsService.getCompletedWorkoutsCount(user.id);
+    return this.workoutQuery.getCompletedWorkoutsCount(user.id);
   }
 
   @Get('calendar')
@@ -43,17 +51,17 @@ export class WorkoutsController {
     @CurrentUser() user: AuthUser,
     @Query('year', new ParseIntPipe()) year: number,
   ) {
-    return this.workoutsService.getWorkoutCalendar(user.id, year);
+    return this.workoutQuery.getWorkoutCalendar(user.id, year);
   }
 
   @Get('stats')
   getWorkoutStats(@CurrentUser() user: AuthUser) {
-    return this.workoutsService.getWorkoutStats(user.id);
+    return this.workoutQuery.getWorkoutStats(user.id);
   }
 
   @Get('active')
   getActiveWorkout(@CurrentUser() user: AuthUser) {
-    return this.workoutsService.getActiveWorkout(user.id);
+    return this.workoutManagement.getActiveWorkout(user.id);
   }
 
   @Get(':workoutId')
@@ -61,12 +69,12 @@ export class WorkoutsController {
     @Param('workoutId', ParseIntPipe) workoutId: number,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.workoutsService.getWorkout(workoutId, user.id);
+    return this.workoutManagement.getWorkout(workoutId, user.id);
   }
 
   @Post('active')
   createActiveWorkout(@CurrentUser() user: AuthUser) {
-    return this.workoutsService.createActiveWorkout(user.id);
+    return this.workoutManagement.createActiveWorkout(user.id);
   }
 
   @Post(':workoutId/complete')
@@ -74,12 +82,12 @@ export class WorkoutsController {
     @Param('workoutId', ParseIntPipe) workoutId: number,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.workoutsService.completeWorkout(user.id, workoutId);
+    return this.workoutManagement.completeWorkout(user.id, workoutId);
   }
 
   @Delete('active')
   deleteActiveWorkout(@CurrentUser() user: AuthUser) {
-    return this.workoutsService.deleteActiveWorkout(user.id);
+    return this.workoutManagement.deleteActiveWorkout(user.id);
   }
 
   @Patch(':workoutId')
@@ -88,7 +96,7 @@ export class WorkoutsController {
     @CurrentUser() user: AuthUser,
     @Body() body: UpdateWorkoutDto,
   ) {
-    return this.workoutsService.updateWorkout(workoutId, user.id, body);
+    return this.workoutManagement.updateWorkout(workoutId, user.id, body);
   }
 
   @Delete(':workoutId')
@@ -96,7 +104,7 @@ export class WorkoutsController {
     @Param('workoutId', ParseIntPipe) workoutId: number,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.workoutsService.deleteWorkout(workoutId, user.id);
+    return this.workoutManagement.deleteWorkout(workoutId, user.id);
   }
 
   @Post(':workoutId/workoutExercises')
@@ -105,7 +113,7 @@ export class WorkoutsController {
     @CurrentUser() user: AuthUser,
     @Body() body: CreateWorkoutExerciseDto,
   ) {
-    return this.workoutsService.createWorkoutExercise(workoutId, user.id, body);
+    return this.workoutExercise.createWorkoutExercise(workoutId, user.id, body);
   }
 
   @Get(':workoutId/workoutExercises/:workoutExerciseId/sets')
@@ -113,7 +121,7 @@ export class WorkoutsController {
     @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.workoutsService.getWorkoutExerciseSets(
+    return this.workoutExercise.getWorkoutExerciseSets(
       workoutExerciseId,
       user.id,
     );
@@ -125,11 +133,7 @@ export class WorkoutsController {
     @CurrentUser() user: AuthUser,
     @Body() body: CreateWorkoutSetDto,
   ) {
-    return this.workoutsService.createWorkoutSet(
-      workoutExerciseId,
-      user.id,
-      body,
-    );
+    return this.workoutSet.createWorkoutSet(workoutExerciseId, user.id, body);
   }
 
   @Patch(':workoutId/workoutExercises/:workoutExerciseId/sets/:setId')
@@ -138,6 +142,6 @@ export class WorkoutsController {
     @CurrentUser() user: AuthUser,
     @Body() body: UpdateWorkoutSetDto,
   ) {
-    return this.workoutsService.updateWorkoutSet(setId, user.id, body);
+    return this.workoutSet.updateWorkoutSet(setId, user.id, body);
   }
 }

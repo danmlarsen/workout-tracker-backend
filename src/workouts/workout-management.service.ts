@@ -1,0 +1,110 @@
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { UpdateWorkoutDto } from './dtos/update-workout.dto';
+
+@Injectable()
+export class WorkoutManagementService {
+  constructor(private readonly prismaService: PrismaService) {}
+
+  async getWorkout(id: number, userId: number) {
+    return this.prismaService.workout.findUnique({
+      where: { id, userId },
+      include: {
+        workoutExercises: {
+          orderBy: { exerciseOrder: 'asc' },
+          include: {
+            exercise: true,
+            workoutSets: { orderBy: { setNumber: 'asc' } },
+            previousWorkoutExercise: {
+              include: {
+                workoutSets: {
+                  where: { completedAt: { not: null } },
+                  orderBy: { setNumber: 'asc' },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  async updateWorkout(id: number, userId: number, data: UpdateWorkoutDto) {
+    return this.prismaService.workout.update({
+      where: { id, userId },
+      data: { ...data, updatedAt: new Date() },
+    });
+  }
+
+  async deleteWorkout(id: number, userId: number) {
+    return this.prismaService.workout.delete({ where: { id, userId } });
+  }
+
+  async getActiveWorkout(userId: number) {
+    return this.prismaService.workout.findFirst({
+      where: { userId, status: 'ACTIVE' },
+      include: {
+        workoutExercises: {
+          orderBy: { exerciseOrder: 'asc' },
+          include: {
+            exercise: true,
+            workoutSets: { orderBy: { setNumber: 'asc' } },
+            previousWorkoutExercise: {
+              include: {
+                workoutSets: {
+                  where: { completedAt: { not: null } },
+                  orderBy: { setNumber: 'asc' },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createActiveWorkout(userId: number) {
+    const foundWorkout = await this.getActiveWorkout(userId);
+    if (foundWorkout)
+      throw new ConflictException('Already have an active workout');
+
+    const today = new Date();
+    const dayTitle = today.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+    });
+    const title = `${dayTitle} Workout`;
+
+    return this.prismaService.workout.create({
+      data: { title, userId, status: 'ACTIVE' },
+    });
+  }
+
+  async completeWorkout(userId: number, workoutId: number) {
+    const workout = await this.prismaService.workout.findFirst({
+      where: { id: workoutId, userId, status: 'ACTIVE' },
+    });
+
+    if (!workout) throw new ForbiddenException('Not allowed');
+
+    const now = new Date();
+
+    return this.prismaService.workout.update({
+      where: { id: workoutId },
+      data: { status: 'COMPLETED', completedAt: now, updatedAt: now },
+    });
+  }
+
+  async deleteActiveWorkout(userId: number) {
+    const workout = await this.getActiveWorkout(userId);
+
+    if (!workout) throw new ForbiddenException('Not allowed');
+
+    return this.prismaService.workout.delete({ where: { id: workout.id } });
+  }
+}
