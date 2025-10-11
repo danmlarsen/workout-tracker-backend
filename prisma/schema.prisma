@@ -46,6 +46,8 @@ model Workout {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   completedAt DateTime?
+  status WorkoutStatus @default(DRAFT)
+  notes String?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
   workoutExercises WorkoutExercise[]
@@ -60,6 +62,7 @@ model WorkoutExercise {
   exerciseOrder Int
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  notes String?
   workoutSets WorkoutSet[]
   previousWorkoutExercise WorkoutExercise? @relation("WorkoutExerciseTemplate", fields: [previousWorkoutExerciseId], references: [id])
   previousWorkoutExerciseId Int?
@@ -74,6 +77,7 @@ model WorkoutSet {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   completedAt DateTime?
+  notes String?
   type String @default("normal")
   reps Int?
   weight Float?
@@ -92,4 +96,10 @@ model PersonalRecord {
   workoutSet WorkoutSet @relation(fields: [workoutSetId], references: [id], onDelete: Cascade)
   workoutSetId Int
   @@unique([userId, exerciseId, recordType])
+}
+
+enum WorkoutStatus {
+  ACTIVE
+  DRAFT
+  COMPLETED
 }
