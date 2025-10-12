@@ -8,8 +8,8 @@ export class WorkoutExerciseService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async createWorkoutExercise(
-    workoutId: number,
     userId: number,
+    workoutId: number,
     data: CreateWorkoutExerciseDto,
   ) {
     const workout = await this.prismaService.workout.findFirst({
