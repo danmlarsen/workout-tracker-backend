@@ -134,6 +134,7 @@ export class WorkoutQueryService {
     SELECT id, "createdAt"
     FROM "Workout"
     WHERE "userId" = ${userId}
+      AND "status" = 'COMPLETED' 
       AND "createdAt" IS NOT NULL
       AND EXTRACT(YEAR FROM "createdAt") = ${year}
     ORDER BY "createdAt" ASC
