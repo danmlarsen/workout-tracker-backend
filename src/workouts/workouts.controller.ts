@@ -21,6 +21,7 @@ import { WorkoutManagementService } from './workout-management.service';
 import { WorkoutExerciseService } from './workout-exercise.service';
 import { WorkoutSetService } from './workout-set.service';
 import { WorkoutQueryService } from './workout-query.service';
+import { UpdateWorkoutExerciseDto } from './dtos/update-workout-exercise.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workouts')
@@ -109,17 +110,41 @@ export class WorkoutsController {
 
   @Post(':workoutId/workoutExercises')
   createWorkoutExercise(
-    @Param('workoutId', ParseIntPipe) workoutId: number,
     @CurrentUser() user: AuthUser,
+    @Param('workoutId', ParseIntPipe) workoutId: number,
     @Body() body: CreateWorkoutExerciseDto,
   ) {
-    return this.workoutExercise.createWorkoutExercise(workoutId, user.id, body);
+    return this.workoutExercise.createWorkoutExercise(user.id, workoutId, body);
+  }
+
+  @Patch(':workoutId/workoutExercises/:workoutExerciseId')
+  updateWorkoutExercise(
+    @CurrentUser() user: AuthUser,
+    @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
+    @Body() body: UpdateWorkoutExerciseDto,
+  ) {
+    return this.workoutExercise.updateWorkoutExercise(
+      user.id,
+      workoutExerciseId,
+      body,
+    );
+  }
+
+  @Delete(':workoutId/workoutExercises/:workoutExerciseId')
+  deleteWorkoutExercise(
+    @CurrentUser() user: AuthUser,
+    @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
+  ) {
+    return this.workoutExercise.deleteWorkoutExercise(
+      user.id,
+      workoutExerciseId,
+    );
   }
 
   @Get(':workoutId/workoutExercises/:workoutExerciseId/sets')
   getWorkoutExerciseSets(
-    @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
     @CurrentUser() user: AuthUser,
+    @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
   ) {
     return this.workoutExercise.getWorkoutExerciseSets(
       workoutExerciseId,
@@ -129,8 +154,8 @@ export class WorkoutsController {
 
   @Post(':workoutId/workoutExercises/:workoutExerciseId/sets')
   createWorkoutSet(
-    @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
     @CurrentUser() user: AuthUser,
+    @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
     @Body() body: CreateWorkoutSetDto,
   ) {
     return this.workoutSet.createWorkoutSet(workoutExerciseId, user.id, body);

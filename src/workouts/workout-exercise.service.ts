@@ -1,6 +1,7 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
+import { UpdateWorkoutExerciseDto } from './dtos/update-workout-exercise.dto';
 
 @Injectable()
 export class WorkoutExerciseService {
@@ -54,7 +55,50 @@ export class WorkoutExerciseService {
     });
   }
 
-  async getWorkoutExerciseSets(id: number, userId: number) {
+  async updateWorkoutExercise(
+    userId: number,
+    id: number,
+    data: UpdateWorkoutExerciseDto,
+  ) {
+    const workoutExercise = await this.prismaService.workoutExercise.findUnique(
+      {
+        where: { id },
+        include: {
+          workout: true,
+        },
+      },
+    );
+
+    if (!workoutExercise || workoutExercise.workout.userId !== userId) {
+      throw new ForbiddenException('Not allowed');
+    }
+
+    return this.prismaService.workoutExercise.update({
+      where: { id },
+      data: { ...data, updatedAt: new Date() },
+    });
+  }
+
+  async deleteWorkoutExercise(userId: number, id: number) {
+    const workoutExercise = await this.prismaService.workoutExercise.findUnique(
+      {
+        where: { id },
+        include: {
+          workout: true,
+        },
+      },
+    );
+
+    if (!workoutExercise || workoutExercise.workout.userId !== userId) {
+      throw new ForbiddenException('Not allowed');
+    }
+
+    return this.prismaService.workoutExercise.delete({
+      where: { id },
+    });
+  }
+
+  async getWorkoutExerciseSets(userId: number, id: number) {
     const workoutExercise = await this.prismaService.workoutExercise.findUnique(
       {
         where: { id },
