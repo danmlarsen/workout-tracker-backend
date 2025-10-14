@@ -45,9 +45,13 @@ model Workout {
   title String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  startedAt DateTime @default(now())
   completedAt DateTime?
   status WorkoutStatus @default(DRAFT)
   notes String?
+  isPaused Boolean @default(false)
+  pauseDuration Float @default(0)
+  lastPauseStartTime DateTime?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
   workoutExercises WorkoutExercise[]
