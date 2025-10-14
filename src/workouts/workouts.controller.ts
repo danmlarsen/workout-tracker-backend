@@ -78,6 +78,16 @@ export class WorkoutsController {
     return this.workoutManagement.createActiveWorkout(user.id);
   }
 
+  @Patch('active/pause')
+  pauseActiveWorkout(@CurrentUser() user: AuthUser) {
+    return this.workoutManagement.pauseActiveWorkout(user.id);
+  }
+
+  @Patch('active/resume')
+  resumeActiveWorkout(@CurrentUser() user: AuthUser) {
+    return this.workoutManagement.resumeActiveWorkout(user.id);
+  }
+
   @Post(':workoutId/complete')
   completeWorkout(
     @Param('workoutId', ParseIntPipe) workoutId: number,

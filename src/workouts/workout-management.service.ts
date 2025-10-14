@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -106,5 +107,46 @@ export class WorkoutManagementService {
     if (!workout) throw new ForbiddenException('Not allowed');
 
     return this.prismaService.workout.delete({ where: { id: workout.id } });
+  }
+
+  async pauseActiveWorkout(userId: number) {
+    const workout = await this.getActiveWorkout(userId);
+
+    if (!workout) throw new ForbiddenException('Not allowed');
+
+    if (workout.isPaused) {
+      throw new BadRequestException('Workout is already paused');
+    }
+
+    return this.prismaService.workout.update({
+      where: { id: workout.id },
+      data: { isPaused: true, lastPauseStartTime: new Date() },
+    });
+  }
+
+  async resumeActiveWorkout(userId: number) {
+    const workout = await this.getActiveWorkout(userId);
+
+    if (!workout) throw new ForbiddenException('Not allowed');
+
+    if (!workout.isPaused || !workout.lastPauseStartTime) {
+      throw new BadRequestException('Workout is not currently paused');
+    }
+
+    const now = new Date();
+    const lastPauseStartTime = new Date(workout.lastPauseStartTime);
+    const lastPauseDuration = Math.max(
+      0,
+      now.getTime() - lastPauseStartTime.getTime(),
+    );
+
+    return this.prismaService.workout.update({
+      where: { id: workout.id },
+      data: {
+        isPaused: false,
+        lastPauseStartTime: null,
+        pauseDuration: (workout.pauseDuration || 0) + lastPauseDuration,
+      },
+    });
   }
 }
