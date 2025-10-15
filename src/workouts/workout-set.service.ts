@@ -86,8 +86,26 @@ export class WorkoutSetService {
       throw new ForbiddenException('Not allowed');
     }
 
-    return this.prismaService.workoutSet.delete({
-      where: { id },
+    return this.prismaService.$transaction(async (tx) => {
+      await tx.workoutSet.updateMany({
+        where: {
+          workoutExerciseId: workoutSet.workoutExerciseId,
+          setNumber: {
+            gt: workoutSet.setNumber,
+          },
+        },
+        data: {
+          setNumber: {
+            decrement: 1,
+          },
+        },
+      });
+
+      const deletedSet = await tx.workoutSet.delete({
+        where: { id },
+      });
+
+      return deletedSet;
     });
   }
 }
