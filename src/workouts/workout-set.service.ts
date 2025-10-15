@@ -71,4 +71,23 @@ export class WorkoutSetService {
       data: { ...updateData, updatedAt: new Date() },
     });
   }
+
+  async deleteWorkoutSet(id: number, userId: number) {
+    const workoutSet = await this.prismaService.workoutSet.findUnique({
+      where: { id },
+      include: {
+        workoutExercise: {
+          include: { workout: true },
+        },
+      },
+    });
+
+    if (!workoutSet || workoutSet.workoutExercise.workout.userId !== userId) {
+      throw new ForbiddenException('Not allowed');
+    }
+
+    return this.prismaService.workoutSet.delete({
+      where: { id },
+    });
+  }
 }

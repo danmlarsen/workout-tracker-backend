@@ -179,4 +179,12 @@ export class WorkoutsController {
   ) {
     return this.workoutSet.updateWorkoutSet(setId, user.id, body);
   }
+
+  @Delete(':workoutId/workoutExercises/:workoutExerciseId/sets/:setId')
+  deleteWorkoutSet(
+    @Param('setId', ParseIntPipe) setId: number,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.workoutSet.deleteWorkoutSet(setId, user.id);
+  }
 }
