@@ -18,7 +18,7 @@ export class WorkoutQueryService {
     const whereClause: Prisma.WorkoutWhereInput = {
       userId,
       status: 'COMPLETED',
-      createdAt: {},
+      startedAt: {},
     };
 
     if (options?.date) {
@@ -29,7 +29,7 @@ export class WorkoutQueryService {
       const endOfDay = new Date(targetDate);
       endOfDay.setHours(23, 59, 59, 999);
 
-      whereClause.createdAt = {
+      whereClause.startedAt = {
         gte: startOfDay,
         lte: endOfDay,
       };
@@ -90,7 +90,7 @@ export class WorkoutQueryService {
       SELECT 
         COALESCE(
           SUM(
-            EXTRACT(EPOCH FROM ("completedAt" - "createdAt")) / 3600
+            EXTRACT(EPOCH FROM ("completedAt" - "startedAt")) / 3600
           ), 
           0
         ) as total_hours
@@ -98,7 +98,7 @@ export class WorkoutQueryService {
       WHERE "userId" = ${userId} 
         AND "status" = 'COMPLETED'
         AND "completedAt" IS NOT NULL 
-        AND "createdAt" IS NOT NULL
+        AND "startedAt" IS NOT NULL
     `,
 
       // Total weight lifted
@@ -129,20 +129,19 @@ export class WorkoutQueryService {
 
   async getWorkoutCalendar(userId: number, year: number) {
     const workouts = await this.prismaService.$queryRaw<
-      Array<{ id: number; createdAt: Date }>
+      Array<{ id: number; startedAt: Date }>
     >`
-    SELECT id, "createdAt"
+    SELECT id, "startedAt"
     FROM "Workout"
     WHERE "userId" = ${userId}
       AND "status" = 'COMPLETED' 
-      AND "createdAt" IS NOT NULL
-      AND EXTRACT(YEAR FROM "createdAt") = ${year}
-    ORDER BY "createdAt" ASC
+      AND EXTRACT(YEAR FROM "startedAt") = ${year}
+    ORDER BY "startedAt" ASC
   `;
 
     return {
       workoutDates: workouts.map(
-        (workout) => workout.createdAt.toISOString().split('T')[0],
+        (workout) => workout.startedAt.toISOString().split('T')[0],
       ),
       totalWorkouts: workouts.length,
     };

@@ -65,7 +65,7 @@ export class WorkoutManagementService {
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { startedAt: 'desc' },
     });
   }
 
