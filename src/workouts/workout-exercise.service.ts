@@ -137,7 +137,7 @@ export class WorkoutExerciseService {
       },
       orderBy: {
         workout: {
-          completedAt: 'desc',
+          startedAt: 'desc',
         },
       },
     });

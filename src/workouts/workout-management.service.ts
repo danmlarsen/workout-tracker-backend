@@ -6,48 +6,24 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateWorkoutDto } from './dtos/update-workout.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class WorkoutManagementService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async getWorkout(id: number, userId: number) {
-    return this.prismaService.workout.findUnique({
-      where: { id, userId },
-      include: {
-        workoutExercises: {
-          orderBy: { exerciseOrder: 'asc' },
-          include: {
-            exercise: true,
-            workoutSets: { orderBy: { setNumber: 'asc' } },
-            previousWorkoutExercise: {
-              include: {
-                workoutSets: {
-                  where: { completedAt: { not: null } },
-                  orderBy: { setNumber: 'asc' },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-  }
+  async getWorkout(
+    userId: number,
+    options?: { id?: number; active?: boolean },
+  ) {
+    const whereClause: Prisma.WorkoutWhereInput = {
+      userId,
+      id: options?.id,
+      status: options?.active ? 'ACTIVE' : undefined,
+    };
 
-  async updateWorkout(id: number, userId: number, data: UpdateWorkoutDto) {
-    return this.prismaService.workout.update({
-      where: { id, userId },
-      data: { ...data, updatedAt: new Date() },
-    });
-  }
-
-  async deleteWorkout(id: number, userId: number) {
-    return this.prismaService.workout.delete({ where: { id, userId } });
-  }
-
-  async getActiveWorkout(userId: number) {
     return this.prismaService.workout.findFirst({
-      where: { userId, status: 'ACTIVE' },
+      where: whereClause,
       include: {
         workoutExercises: {
           orderBy: { exerciseOrder: 'asc' },
@@ -69,6 +45,21 @@ export class WorkoutManagementService {
     });
   }
 
+  async updateWorkout(id: number, userId: number, data: UpdateWorkoutDto) {
+    const workout = await this.getWorkout(userId, { id });
+
+    if (!workout) throw new ForbiddenException('Not allowed');
+
+    return this.prismaService.workout.update({
+      where: { id, userId },
+      data: { ...data, updatedAt: new Date() },
+    });
+  }
+
+  async deleteWorkout(id: number, userId: number) {
+    return this.prismaService.workout.delete({ where: { id, userId } });
+  }
+
   async createWorkoutDraft(userId: number) {
     return this.prismaService.workout.create({
       data: { userId, status: 'DRAFT' },
@@ -76,7 +67,7 @@ export class WorkoutManagementService {
   }
 
   async createActiveWorkout(userId: number) {
-    const foundWorkout = await this.getActiveWorkout(userId);
+    const foundWorkout = await this.getWorkout(userId, { active: true });
     if (foundWorkout)
       throw new ConflictException('Already have an active workout');
 
@@ -94,14 +85,20 @@ export class WorkoutManagementService {
 
     const now = new Date();
 
+    const activeDuration = Math.floor(
+      new Date(
+        now.getTime() - workout.startedAt.getTime() - workout.pauseDuration,
+      ).getTime() / 1000,
+    );
+
     return this.prismaService.workout.update({
       where: { id: workoutId },
-      data: { status: 'COMPLETED', completedAt: now, updatedAt: now },
+      data: { status: 'COMPLETED', updatedAt: now, activeDuration },
     });
   }
 
   async deleteActiveWorkout(userId: number) {
-    const workout = await this.getActiveWorkout(userId);
+    const workout = await this.getWorkout(userId, { active: true });
 
     if (!workout) throw new ForbiddenException('Not allowed');
 
@@ -109,7 +106,7 @@ export class WorkoutManagementService {
   }
 
   async pauseActiveWorkout(userId: number) {
-    const workout = await this.getActiveWorkout(userId);
+    const workout = await this.getWorkout(userId, { active: true });
 
     if (!workout) throw new ForbiddenException('Not allowed');
 
@@ -124,7 +121,7 @@ export class WorkoutManagementService {
   }
 
   async resumeActiveWorkout(userId: number) {
-    const workout = await this.getActiveWorkout(userId);
+    const workout = await this.getWorkout(userId, { active: true });
 
     if (!workout) throw new ForbiddenException('Not allowed');
 

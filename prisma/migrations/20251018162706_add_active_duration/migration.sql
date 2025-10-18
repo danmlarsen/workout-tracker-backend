@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Workout" ADD COLUMN     "activeDuration" DOUBLE PRECISION NOT NULL DEFAULT 0;

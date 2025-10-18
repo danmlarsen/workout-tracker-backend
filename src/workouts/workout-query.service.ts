@@ -38,7 +38,7 @@ export class WorkoutQueryService {
     const workouts = await this.prismaService.workout.findMany({
       where: whereClause,
       take: WORKOUT_LIMIT + 1,
-      orderBy: { completedAt: 'desc' },
+      orderBy: { startedAt: 'desc' },
       ...(options?.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
       include: {
         workoutExercises: {
@@ -89,16 +89,12 @@ export class WorkoutQueryService {
       this.prismaService.$queryRaw<[{ total_hours: number }]>`
       SELECT 
         COALESCE(
-          SUM(
-            EXTRACT(EPOCH FROM ("completedAt" - "startedAt")) / 3600
-          ), 
+          SUM("activeDuration") / 3600.0,
           0
         ) as total_hours
       FROM "Workout" 
       WHERE "userId" = ${userId} 
         AND "status" = 'COMPLETED'
-        AND "completedAt" IS NOT NULL 
-        AND "startedAt" IS NOT NULL
     `,
 
       // Total weight lifted
@@ -113,7 +109,6 @@ export class WorkoutQueryService {
       INNER JOIN "Workout" w ON we."workoutId" = w.id
       WHERE w."userId" = ${userId}
         AND w."status" = 'COMPLETED'
-        AND ws."completedAt" IS NOT NULL
         AND ws.weight IS NOT NULL
         AND ws.reps IS NOT NULL
     `,

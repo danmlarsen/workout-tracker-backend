@@ -62,7 +62,7 @@ export class WorkoutsController {
 
   @Get('active')
   getActiveWorkout(@CurrentUser() user: AuthUser) {
-    return this.workoutManagement.getActiveWorkout(user.id);
+    return this.workoutManagement.getWorkout(user.id, { active: true });
   }
 
   @Get(':workoutId')
@@ -70,7 +70,7 @@ export class WorkoutsController {
     @Param('workoutId', ParseIntPipe) workoutId: number,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.workoutManagement.getWorkout(workoutId, user.id);
+    return this.workoutManagement.getWorkout(user.id, { id: workoutId });
   }
 
   @Post('')

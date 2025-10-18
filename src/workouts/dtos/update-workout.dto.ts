@@ -1,8 +1,10 @@
 import {
   IsDateString,
   IsOptional,
+  IsPositive,
   IsString,
   Length,
+  Max,
   MaxLength,
 } from 'class-validator';
 
@@ -24,6 +26,7 @@ export class UpdateWorkoutDto {
   startedAt: string;
 
   @IsOptional()
-  @IsDateString()
-  completedAt: string;
+  @IsPositive()
+  @Max(43200, { message: 'Active duration cannot exceed 12 hours' })
+  activeDuration: number;
 }
