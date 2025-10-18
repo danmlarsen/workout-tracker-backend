@@ -73,6 +73,11 @@ export class WorkoutsController {
     return this.workoutManagement.getWorkout(workoutId, user.id);
   }
 
+  @Post('')
+  createWorkoutDraft(@CurrentUser() user: AuthUser) {
+    return this.workoutManagement.createWorkoutDraft(user.id);
+  }
+
   @Post('active')
   createActiveWorkout(@CurrentUser() user: AuthUser) {
     return this.workoutManagement.createActiveWorkout(user.id);

@@ -69,20 +69,19 @@ export class WorkoutManagementService {
     });
   }
 
+  async createWorkoutDraft(userId: number) {
+    return this.prismaService.workout.create({
+      data: { userId, status: 'DRAFT' },
+    });
+  }
+
   async createActiveWorkout(userId: number) {
     const foundWorkout = await this.getActiveWorkout(userId);
     if (foundWorkout)
       throw new ConflictException('Already have an active workout');
 
-    const today = new Date();
-    const dayTitle = today.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-    });
-    const title = `${dayTitle} Workout`;
-
     return this.prismaService.workout.create({
-      data: { title, userId, status: 'ACTIVE' },
+      data: { userId, status: 'ACTIVE' },
     });
   }
 
