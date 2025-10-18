@@ -1,4 +1,10 @@
-import { IsOptional, IsString, Length, MaxLength } from 'class-validator';
+import {
+  IsDateString,
+  IsOptional,
+  IsString,
+  Length,
+  MaxLength,
+} from 'class-validator';
 
 export class UpdateWorkoutDto {
   @IsString()
@@ -12,4 +18,12 @@ export class UpdateWorkoutDto {
   @IsOptional()
   @MaxLength(200, { message: 'Notes must not exceed 200 characters' })
   notes: string;
+
+  @IsOptional()
+  @IsDateString()
+  startedAt: string;
+
+  @IsOptional()
+  @IsDateString()
+  completedAt: string;
 }
