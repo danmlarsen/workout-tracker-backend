@@ -50,6 +50,9 @@ export class WorkoutManagementService {
 
     if (!workout) throw new ForbiddenException('Not allowed');
 
+    if (workout.status === 'ACTIVE' && data.activeDuration)
+      throw new ForbiddenException('Not allowed');
+
     return this.prismaService.workout.update({
       where: { id, userId },
       data: { ...data, updatedAt: new Date() },
