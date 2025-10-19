@@ -10,7 +10,8 @@ export class WorkoutQueryService {
     userId: number,
     options?: {
       cursor?: number;
-      date?: string;
+      from?: Date;
+      to?: Date;
     },
   ) {
     const WORKOUT_LIMIT = 10;
@@ -18,22 +19,11 @@ export class WorkoutQueryService {
     const whereClause: Prisma.WorkoutWhereInput = {
       userId,
       status: 'COMPLETED',
-      startedAt: {},
+      startedAt: {
+        gte: options?.from ? options.from : undefined,
+        lte: options?.to ? options.to : undefined,
+      },
     };
-
-    if (options?.date) {
-      const targetDate = new Date(options.date);
-      const startOfDay = new Date(targetDate);
-      startOfDay.setHours(0, 0, 0, 0);
-
-      const endOfDay = new Date(targetDate);
-      endOfDay.setHours(23, 59, 59, 999);
-
-      whereClause.startedAt = {
-        gte: startOfDay,
-        lte: endOfDay,
-      };
-    }
 
     const workouts = await this.prismaService.workout.findMany({
       where: whereClause,
@@ -135,9 +125,7 @@ export class WorkoutQueryService {
   `;
 
     return {
-      workoutDates: workouts.map(
-        (workout) => workout.startedAt.toISOString().split('T')[0],
-      ),
+      workoutDates: workouts.map((workout) => workout.startedAt),
       totalWorkouts: workouts.length,
     };
   }

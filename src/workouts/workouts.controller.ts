@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseDatePipe,
   ParseIntPipe,
   Patch,
   Post,
@@ -37,9 +38,14 @@ export class WorkoutsController {
   getCompletedWorkouts(
     @CurrentUser() user: AuthUser,
     @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
-    @Query('date') date?: string,
+    @Query('from', new ParseDatePipe({ optional: true })) from?: Date,
+    @Query('to', new ParseDatePipe({ optional: true })) to?: Date,
   ) {
-    return this.workoutQuery.getCompletedWorkouts(user.id, { cursor, date });
+    return this.workoutQuery.getCompletedWorkouts(user.id, {
+      cursor,
+      from,
+      to,
+    });
   }
 
   @Get('count')
