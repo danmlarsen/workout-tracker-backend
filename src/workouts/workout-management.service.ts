@@ -82,18 +82,27 @@ export class WorkoutManagementService {
 
   async completeWorkout(userId: number, workoutId: number) {
     const workout = await this.prismaService.workout.findFirst({
-      where: { id: workoutId, userId, status: 'ACTIVE' },
+      where: {
+        id: workoutId,
+        userId,
+        OR: [{ status: 'ACTIVE' }, { status: 'DRAFT' }],
+      },
     });
 
     if (!workout) throw new ForbiddenException('Not allowed');
 
     const now = new Date();
 
-    const activeDuration = Math.floor(
-      new Date(
-        now.getTime() - workout.startedAt.getTime() - workout.pauseDuration,
-      ).getTime() / 1000,
-    );
+    const activeDuration =
+      workout.status === 'ACTIVE'
+        ? Math.floor(
+            new Date(
+              now.getTime() -
+                workout.startedAt.getTime() -
+                workout.pauseDuration,
+            ).getTime() / 1000,
+          )
+        : workout.activeDuration;
 
     return this.prismaService.workout.update({
       where: { id: workoutId },
