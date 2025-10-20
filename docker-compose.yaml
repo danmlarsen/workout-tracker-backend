@@ -13,6 +13,7 @@ services:
       - .env.docker
     environment:
       - NODE_ENV=development
+    user: '${UID}:${GID}'
     restart: unless-stopped
     depends_on:
       db:
