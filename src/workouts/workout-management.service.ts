@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateWorkoutDto } from './dtos/update-workout.dto';
-import { Prisma } from '@prisma/client';
+import { Prisma, WorkoutStatus } from '@prisma/client';
 
 @Injectable()
 export class WorkoutManagementService {
@@ -14,16 +14,17 @@ export class WorkoutManagementService {
 
   async getWorkout(
     userId: number,
-    options?: { id?: number; active?: boolean },
+    options?: { id?: number; status?: WorkoutStatus },
   ) {
     const whereClause: Prisma.WorkoutWhereInput = {
       userId,
       id: options?.id,
-      status: options?.active ? 'ACTIVE' : undefined,
+      status: options?.status,
     };
 
     return this.prismaService.workout.findFirst({
       where: whereClause,
+      orderBy: { startedAt: 'desc' },
       include: {
         workoutExercises: {
           orderBy: { exerciseOrder: 'asc' },
@@ -41,7 +42,6 @@ export class WorkoutManagementService {
           },
         },
       },
-      orderBy: { startedAt: 'desc' },
     });
   }
 
@@ -63,14 +63,14 @@ export class WorkoutManagementService {
     return this.prismaService.workout.delete({ where: { id, userId } });
   }
 
-  async createWorkoutDraft(userId: number) {
+  async createDraftWorkout(userId: number) {
     return this.prismaService.workout.create({
       data: { userId, status: 'DRAFT' },
     });
   }
 
   async createActiveWorkout(userId: number) {
-    const foundWorkout = await this.getWorkout(userId, { active: true });
+    const foundWorkout = await this.getWorkout(userId, { status: 'ACTIVE' });
     if (foundWorkout)
       throw new ConflictException('Already have an active workout');
 
@@ -101,7 +101,7 @@ export class WorkoutManagementService {
   }
 
   async deleteActiveWorkout(userId: number) {
-    const workout = await this.getWorkout(userId, { active: true });
+    const workout = await this.getWorkout(userId, { status: 'ACTIVE' });
 
     if (!workout) throw new ForbiddenException('Not allowed');
 
@@ -109,7 +109,7 @@ export class WorkoutManagementService {
   }
 
   async pauseActiveWorkout(userId: number) {
-    const workout = await this.getWorkout(userId, { active: true });
+    const workout = await this.getWorkout(userId, { status: 'ACTIVE' });
 
     if (!workout) throw new ForbiddenException('Not allowed');
 
@@ -124,7 +124,7 @@ export class WorkoutManagementService {
   }
 
   async resumeActiveWorkout(userId: number) {
-    const workout = await this.getWorkout(userId, { active: true });
+    const workout = await this.getWorkout(userId, { status: 'ACTIVE' });
 
     if (!workout) throw new ForbiddenException('Not allowed');
 

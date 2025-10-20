@@ -68,7 +68,7 @@ export class WorkoutsController {
 
   @Get('active')
   getActiveWorkout(@CurrentUser() user: AuthUser) {
-    return this.workoutManagement.getWorkout(user.id, { active: true });
+    return this.workoutManagement.getWorkout(user.id, { status: 'ACTIVE' });
   }
 
   @Get(':workoutId')
@@ -80,8 +80,8 @@ export class WorkoutsController {
   }
 
   @Post('')
-  createWorkoutDraft(@CurrentUser() user: AuthUser) {
-    return this.workoutManagement.createWorkoutDraft(user.id);
+  createDraftWorkout(@CurrentUser() user: AuthUser) {
+    return this.workoutManagement.createDraftWorkout(user.id);
   }
 
   @Post('active')
