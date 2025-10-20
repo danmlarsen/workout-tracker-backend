@@ -66,6 +66,7 @@ export class WorkoutManagementService {
   async createDraftWorkout(userId: number) {
     return this.prismaService.workout.create({
       data: { userId, status: 'DRAFT' },
+      include: { workoutExercises: true },
     });
   }
 
