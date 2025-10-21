@@ -64,6 +64,10 @@ export class WorkoutManagementService {
   }
 
   async createDraftWorkout(userId: number) {
+    await this.prismaService.workout.deleteMany({
+      where: { userId, status: 'DRAFT' },
+    });
+
     return this.prismaService.workout.create({
       data: { userId, status: 'DRAFT' },
       include: { workoutExercises: true },
