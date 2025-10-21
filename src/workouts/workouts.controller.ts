@@ -23,6 +23,7 @@ import { WorkoutExerciseService } from './workout-exercise.service';
 import { WorkoutSetService } from './workout-set.service';
 import { WorkoutQueryService } from './workout-query.service';
 import { UpdateWorkoutExerciseDto } from './dtos/update-workout-exercise.dto';
+import { CreateWorkoutDto } from './dtos/create-workout.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('workouts')
@@ -80,8 +81,11 @@ export class WorkoutsController {
   }
 
   @Post('')
-  createDraftWorkout(@CurrentUser() user: AuthUser) {
-    return this.workoutManagement.createDraftWorkout(user.id);
+  createDraftWorkout(
+    @CurrentUser() user: AuthUser,
+    @Body() body: CreateWorkoutDto,
+  ) {
+    return this.workoutManagement.createDraftWorkout(user.id, body);
   }
 
   @Post('active')

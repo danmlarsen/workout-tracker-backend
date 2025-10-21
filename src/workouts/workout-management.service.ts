@@ -7,6 +7,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateWorkoutDto } from './dtos/update-workout.dto';
 import { Prisma, WorkoutStatus } from '@prisma/client';
+import { CreateWorkoutDto } from './dtos/create-workout.dto';
 
 @Injectable()
 export class WorkoutManagementService {
@@ -63,13 +64,13 @@ export class WorkoutManagementService {
     return this.prismaService.workout.delete({ where: { id, userId } });
   }
 
-  async createDraftWorkout(userId: number) {
+  async createDraftWorkout(userId: number, data: CreateWorkoutDto) {
     await this.prismaService.workout.deleteMany({
       where: { userId, status: 'DRAFT' },
     });
 
     return this.prismaService.workout.create({
-      data: { userId, status: 'DRAFT' },
+      data: { ...data, userId, status: 'DRAFT' },
       include: { workoutExercises: true },
     });
   }
