@@ -196,7 +196,6 @@ export class ExercisesService {
     const flattenedWorkouts = results.map(
       ({ workoutExercises, ...workout }) => ({
         ...workout,
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         workoutSets: workoutExercises[0].workoutSets || [],
       }),
     );
