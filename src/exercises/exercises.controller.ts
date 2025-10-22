@@ -28,14 +28,14 @@ export class ExercisesController {
     @CurrentUser() user: AuthUser,
     @Query('cursor', new ParseIntPipe({ optional: true })) cursor?: number,
     @Query('name') name?: string,
-    @Query('muscleGroups', new ParseArrayPipe({ optional: true }))
-    muscleGroups?: string[],
+    @Query('targetMuscleGroups', new ParseArrayPipe({ optional: true }))
+    targetMuscleGroups?: string[],
     @Query('equipment', new ParseArrayPipe({ optional: true }))
     equipment?: string[],
   ) {
     return this.exercisesService.findAllExercises(user.id, {
       cursor,
-      filters: { name, muscleGroups, equipment },
+      filters: { name, targetMuscleGroups, equipment },
     });
   }
 

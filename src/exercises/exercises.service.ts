@@ -17,7 +17,7 @@ export class ExercisesService {
       cursor?: number;
       filters?: {
         name?: string;
-        muscleGroups?: string[];
+        targetMuscleGroups?: string[];
         equipment?: string[];
       };
     },
@@ -40,11 +40,11 @@ export class ExercisesService {
               ]
             : []),
           // Muscle groups filter - array contains any of the specified groups
-          ...(options?.filters?.muscleGroups?.length
+          ...(options?.filters?.targetMuscleGroups?.length
             ? [
                 {
-                  muscleGroups: {
-                    hasSome: options.filters.muscleGroups,
+                  targetMuscleGroups: {
+                    hasSome: options.filters.targetMuscleGroups,
                   },
                 },
               ]
