@@ -111,7 +111,12 @@ export class WorkoutManagementService {
 
     return this.prismaService.workout.update({
       where: { id: workoutId },
-      data: { status: 'COMPLETED', updatedAt: now, activeDuration },
+      data: {
+        status: 'COMPLETED',
+        updatedAt: now,
+        completedAt: now,
+        activeDuration,
+      },
     });
   }
 
@@ -134,7 +139,11 @@ export class WorkoutManagementService {
 
     return this.prismaService.workout.update({
       where: { id: workout.id },
-      data: { isPaused: true, lastPauseStartTime: new Date() },
+      data: {
+        isPaused: true,
+        updatedAt: new Date(),
+        lastPauseStartTime: new Date(),
+      },
     });
   }
 
@@ -160,6 +169,7 @@ export class WorkoutManagementService {
         isPaused: false,
         lastPauseStartTime: null,
         pauseDuration: (workout.pauseDuration || 0) + lastPauseDuration,
+        updatedAt: new Date(),
       },
     });
   }
