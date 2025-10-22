@@ -31,9 +31,13 @@ model Exercise {
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int?
   type String
+  exerciseType String @default("strength")
   muscleGroups String[]
+  targetMuscleGroups String[] @default([])
+  secondaryMuscleGroups String[] @default([])
   equipment String
-  image String?
+  imageUrls String[] @default([])
+  videoUrls String[] @default([])
   workoutExercises WorkoutExercise[]
   personalRecords PersonalRecord[]
 
@@ -46,6 +50,7 @@ model Workout {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   startedAt DateTime @default(now())
+  completedAt DateTime?
   activeDuration Float @default(0)
   status WorkoutStatus @default(DRAFT)
   notes String?
