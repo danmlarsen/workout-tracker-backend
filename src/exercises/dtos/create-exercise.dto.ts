@@ -14,7 +14,7 @@ export class CreateExerciseDto {
 
   @IsString()
   @IsNotEmpty()
-  type: string;
+  exerciseType: string;
 
   @IsArray()
   @ArrayMinSize(1)
@@ -24,7 +24,16 @@ export class CreateExerciseDto {
   @Transform(({ value }: { value: string[] }) =>
     value.map((item: string) => item.toLowerCase()),
   )
-  muscleGroups: string[];
+  targetMuscleGroups: string[];
+
+  @IsArray()
+  @ArrayMaxSize(5)
+  @IsString({ each: true })
+  @IsNotEmpty({ each: true })
+  @Transform(({ value }: { value: string[] }) =>
+    value.map((item: string) => item.toLowerCase()),
+  )
+  secondaryMuscleGroups: string[];
 
   @IsString()
   @IsNotEmpty()
