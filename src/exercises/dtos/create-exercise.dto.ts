@@ -14,7 +14,7 @@ export class CreateExerciseDto {
 
   @IsString()
   @IsNotEmpty()
-  exerciseType: string;
+  category: string;
 
   @IsArray()
   @ArrayMinSize(1)

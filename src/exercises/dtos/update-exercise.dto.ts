@@ -14,7 +14,7 @@ export class UpdateExerciseDto {
 
   @IsString()
   @IsNotEmpty()
-  exerciseType: string;
+  category: string;
 
   @IsArray()
   @ArrayMinSize(1)

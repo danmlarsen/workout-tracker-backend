@@ -30,11 +30,15 @@ model Exercise {
   name String
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int?
-  exerciseType String @default("strength")
+  category String @default("strength") // strength cardio flexibility sports yoga etc..
   muscleGroups String[]
   targetMuscleGroups String[] @default([])
   secondaryMuscleGroups String[] @default([])
   equipment String
+  // level String?      beginner intermediate expert
+  // mechanic String?   compound isolation
+  // force String?      push pull 
+  instructions String?
   imageUrls String[] @default([])
   videoUrls String[] @default([])
   workoutExercises WorkoutExercise[]
