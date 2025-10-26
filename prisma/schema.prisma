@@ -31,7 +31,6 @@ model Exercise {
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int?
   category String @default("strength") // strength cardio flexibility sports yoga etc..
-  muscleGroups String[]
   targetMuscleGroups String[] @default([])
   secondaryMuscleGroups String[] @default([])
   equipment String
