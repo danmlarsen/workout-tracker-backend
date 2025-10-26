@@ -63,8 +63,15 @@ export class WorkoutsController {
   }
 
   @Get('stats')
-  getWorkoutStats(@CurrentUser() user: AuthUser) {
-    return this.workoutQuery.getWorkoutStats(user.id);
+  getWorkoutStats(
+    @CurrentUser() user: AuthUser,
+    @Query('from', new ParseDatePipe({ optional: true })) from?: Date,
+    @Query('to', new ParseDatePipe({ optional: true })) to?: Date,
+  ) {
+    return this.workoutQuery.getWorkoutStats(user.id, {
+      from,
+      to,
+    });
   }
 
   @Get('active')

@@ -65,14 +65,26 @@ export class WorkoutQueryService {
     });
   }
 
-  async getWorkoutStats(userId: number) {
+  async getWorkoutStats(
+    userId: number,
+    options?: {
+      from?: Date;
+      to?: Date;
+    },
+  ) {
+    const whereClause: Prisma.WorkoutWhereInput = {
+      userId,
+      status: 'COMPLETED',
+      startedAt: {
+        gte: options?.from ? options.from : undefined,
+        lte: options?.to ? options.to : undefined,
+      },
+    };
+
     const [totalWorkouts, hoursResult, weightResult] = await Promise.all([
       // Total workouts count
       this.prismaService.workout.count({
-        where: {
-          userId,
-          status: 'COMPLETED',
-        },
+        where: whereClause,
       }),
 
       // Total workout hours
@@ -85,6 +97,8 @@ export class WorkoutQueryService {
       FROM "Workout" 
       WHERE "userId" = ${userId} 
         AND "status" = 'COMPLETED'
+        ${options?.from ? Prisma.sql`AND "startedAt" >= ${options.from}` : Prisma.empty}
+        ${options?.to ? Prisma.sql`AND "startedAt" <= ${options.to}` : Prisma.empty}
     `,
 
       // Total weight lifted
@@ -101,6 +115,8 @@ export class WorkoutQueryService {
         AND w."status" = 'COMPLETED'
         AND ws.weight IS NOT NULL
         AND ws.reps IS NOT NULL
+        ${options?.from ? Prisma.sql`AND w."startedAt" >= ${options.from}` : Prisma.empty}
+        ${options?.to ? Prisma.sql`AND w."startedAt" <= ${options.to}` : Prisma.empty}
     `,
     ]);
 
