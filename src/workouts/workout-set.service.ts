@@ -66,7 +66,10 @@ export class WorkoutSetService {
 
     return this.prismaService.$transaction(async (tx) => {
       // Converting normal set to warmup
-      if (workoutSet.type !== 'warmup' && data.type === WorkoutSetType.WARMUP) {
+      if (
+        workoutSet.type !== WorkoutSetType.WARMUP.toString() &&
+        data.type === WorkoutSetType.WARMUP
+      ) {
         // Shift down all sets that were after this one
         await tx.workoutSet.updateMany({
           where: {
@@ -88,7 +91,7 @@ export class WorkoutSetService {
 
       // Converting warmup set to normal
       if (
-        workoutSet.type === 'warmup' &&
+        workoutSet.type === WorkoutSetType.WARMUP.toString() &&
         !!data.type &&
         data.type !== WorkoutSetType.WARMUP
       ) {
@@ -133,19 +136,24 @@ export class WorkoutSetService {
     }
 
     return this.prismaService.$transaction(async (tx) => {
-      await tx.workoutSet.updateMany({
-        where: {
-          workoutExerciseId: workoutSet.workoutExerciseId,
-          setNumber: {
-            gt: workoutSet.setNumber,
+      if (
+        workoutSet.setNumber > 0 &&
+        workoutSet.type !== WorkoutSetType.WARMUP.toString()
+      ) {
+        await tx.workoutSet.updateMany({
+          where: {
+            workoutExerciseId: workoutSet.workoutExerciseId,
+            setNumber: {
+              gt: workoutSet.setNumber,
+            },
           },
-        },
-        data: {
-          setNumber: {
-            decrement: 1,
+          data: {
+            setNumber: {
+              decrement: 1,
+            },
           },
-        },
-      });
+        });
+      }
 
       const deletedSet = await tx.workoutSet.delete({
         where: { id },
