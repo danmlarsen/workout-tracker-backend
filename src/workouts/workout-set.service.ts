@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
 import { UpdateWorkoutSetDto } from './dtos/update-workout-set.dto';
+import { WorkoutSetType } from './types/workout.types';
 
 @Injectable()
 export class WorkoutSetService {
@@ -55,20 +56,65 @@ export class WorkoutSetService {
     }
 
     const updateData: { [key: string]: any } = { ...data };
-
     if (data.completed) {
       updateData.completedAt = new Date();
     }
-
     if (data.completed === false) {
       updateData.completedAt = null;
     }
-
     delete updateData.completed;
 
-    return this.prismaService.workoutSet.update({
-      where: { id },
-      data: { ...updateData, updatedAt: new Date() },
+    return this.prismaService.$transaction(async (tx) => {
+      // Converting normal set to warmup
+      if (workoutSet.type !== 'warmup' && data.type === WorkoutSetType.WARMUP) {
+        // Shift down all sets that were after this one
+        await tx.workoutSet.updateMany({
+          where: {
+            workoutExerciseId: workoutSet.workoutExerciseId,
+            setNumber: {
+              gt: workoutSet.setNumber,
+            },
+          },
+          data: {
+            setNumber: {
+              decrement: 1,
+            },
+          },
+        });
+
+        updateData.type = WorkoutSetType.WARMUP;
+        updateData.setNumber = 0;
+      }
+
+      // Converting warmup set to normal
+      if (
+        workoutSet.type === 'warmup' &&
+        !!data.type &&
+        data.type !== WorkoutSetType.WARMUP
+      ) {
+        // Shift up all normal sets to make room at position 1
+        await tx.workoutSet.updateMany({
+          where: {
+            workoutExerciseId: workoutSet.workoutExerciseId,
+            setNumber: {
+              gte: 1,
+            },
+          },
+          data: {
+            setNumber: {
+              increment: 1,
+            },
+          },
+        });
+
+        updateData.setNumber = 1;
+      }
+
+      const updatedSet = await tx.workoutSet.update({
+        where: { id },
+        data: { ...updateData, updatedAt: new Date() },
+      });
+      return updatedSet;
     });
   }
 

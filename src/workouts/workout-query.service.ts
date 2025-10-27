@@ -35,7 +35,9 @@ export class WorkoutQueryService {
           orderBy: { exerciseOrder: 'asc' },
           include: {
             exercise: true,
-            workoutSets: { orderBy: { setNumber: 'asc' } },
+            workoutSets: {
+              orderBy: [{ setNumber: 'asc' }, { updatedAt: 'desc' }],
+            },
             previousWorkoutExercise: {
               include: {
                 workoutSets: {
