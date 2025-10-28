@@ -13,6 +13,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { JwtPayload } from 'src/common/types/jwt-payload.interface';
 import * as crypto from 'crypto';
+import { EmailService } from 'src/email/email.service';
 
 @Injectable()
 export class AuthService {
@@ -20,8 +21,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    // Add email service here when implemented
-    // private readonly emailService: EmailService,
+    private readonly emailService: EmailService,
   ) {}
 
   async registerUser(data: RegisterUserDto) {
@@ -30,15 +30,21 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
+    const { emailConfirmationToken, emailConfirmationTokenExpiry } =
+      this.generateEmailConfirmationToken();
+
     const newUser = await this.usersService.createUser({
       email: data.email,
       password: hashedPassword,
       isEmailConfirmed: false,
-      ...this.generateEmailConfirmationToken(),
+      emailConfirmationToken,
+      emailConfirmationTokenExpiry,
     });
 
-    // Send confirmation email
-    // await this.emailService.sendConfirmationEmail(newUser.email, emailConfirmationToken);
+    await this.emailService.sendConfirmationEmail(
+      newUser.email,
+      emailConfirmationToken,
+    );
 
     return plainToInstance(UserResponseDto, newUser, {
       excludeExtraneousValues: true,
@@ -86,13 +92,18 @@ export class AuthService {
       throw new ConflictException('Email is already confirmed');
     }
 
-    await this.usersService.updateUser(
-      user.id,
-      this.generateEmailConfirmationToken(),
-    );
+    const { emailConfirmationToken, emailConfirmationTokenExpiry } =
+      this.generateEmailConfirmationToken();
 
-    // Send confirmation email
-    // await this.emailService.sendConfirmationEmail(user.email, emailConfirmationToken);
+    await this.usersService.updateUser(user.id, {
+      emailConfirmationToken,
+      emailConfirmationTokenExpiry,
+    });
+
+    await this.emailService.sendConfirmationEmail(
+      user.email,
+      emailConfirmationToken,
+    );
 
     return {
       success: true,

@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { ExercisesModule } from './exercises/exercises.module';
 import { LoggerModule } from 'nestjs-pino';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { LoggerModule } from 'nestjs-pino';
     UsersModule,
     AuthModule,
     ExercisesModule,
+    EmailModule,
   ],
   controllers: [],
   providers: [],
