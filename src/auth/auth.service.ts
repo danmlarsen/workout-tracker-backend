@@ -12,6 +12,7 @@ import { UserResponseDto } from './dtos/user-response.dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { JwtPayload } from 'src/common/types/jwt-payload.interface';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +20,8 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    // Add email service here when implemented
+    // private readonly emailService: EmailService,
   ) {}
 
   async registerUser(data: RegisterUserDto) {
@@ -30,11 +33,71 @@ export class AuthService {
     const newUser = await this.usersService.createUser({
       email: data.email,
       password: hashedPassword,
+      isEmailConfirmed: false,
+      ...this.generateEmailConfirmationToken(),
     });
+
+    // Send confirmation email
+    // await this.emailService.sendConfirmationEmail(newUser.email, emailConfirmationToken);
 
     return plainToInstance(UserResponseDto, newUser, {
       excludeExtraneousValues: true,
     });
+  }
+
+  async confirmEmail(token: string) {
+    const user = await this.usersService.getUser({
+      emailConfirmationToken: token,
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid confirmation token');
+    }
+    if (
+      !user.emailConfirmationTokenExpiry ||
+      user.emailConfirmationTokenExpiry < new Date()
+    ) {
+      throw new UnauthorizedException('Confirmation token has expired');
+    }
+    if (user.isEmailConfirmed) {
+      new ConflictException('Email is already confirmed');
+    }
+
+    await this.usersService.updateUser(user.id, {
+      isEmailConfirmed: true,
+      emailConfirmationToken: null,
+      emailConfirmationTokenExpiry: null,
+    });
+
+    return {
+      success: true,
+      message: 'Email confirmed successfully',
+    };
+  }
+
+  async resendConfirmationEmail(email: string) {
+    const user = await this.usersService.getUser({ email });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (user.isEmailConfirmed) {
+      throw new ConflictException('Email is already confirmed');
+    }
+
+    await this.usersService.updateUser(
+      user.id,
+      this.generateEmailConfirmationToken(),
+    );
+
+    // Send confirmation email
+    // await this.emailService.sendConfirmationEmail(user.email, emailConfirmationToken);
+
+    return {
+      success: true,
+      message: 'Confirmation email sent',
+    };
   }
 
   async validateUser(data: LoginUserDto) {
@@ -43,6 +106,10 @@ export class AuthService {
 
     const isMatch = await bcrypt.compare(data.password, user.password);
     if (!isMatch) return null;
+
+    if (!user.isEmailConfirmed) {
+      return null;
+    }
 
     return plainToInstance(UserResponseDto, user, {
       excludeExtraneousValues: true,
@@ -94,5 +161,14 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(newPayload),
     };
+  }
+
+  private generateEmailConfirmationToken() {
+    const emailConfirmationToken = crypto.randomBytes(32).toString('hex');
+    const emailConfirmationTokenExpiry = new Date(
+      Date.now() + 24 * 60 * 60 * 1000,
+    ); // 24 hours
+
+    return { emailConfirmationToken, emailConfirmationTokenExpiry };
   }
 }

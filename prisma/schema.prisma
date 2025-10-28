@@ -20,6 +20,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   refreshToken String?
+
+  isEmailConfirmed Boolean @default(false)
+  emailConfirmationToken String?
+  emailConfirmationTokenExpiry DateTime?
+
   workouts Workout[]
   exercises Exercise[]
   personalRecords PersonalRecord[]

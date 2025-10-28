@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Request,
   Res,
@@ -127,5 +128,15 @@ export class AuthController {
   @Get('whoami')
   whoAmI(@CurrentUser() user: AuthUser) {
     return user;
+  }
+
+  @Get('confirm/:token')
+  async confirmEmail(@Param('token') token: string) {
+    return this.authService.confirmEmail(token);
+  }
+
+  @Post('resend-confirmation')
+  async resendConfirmation(@Body('email') email: string) {
+    return this.authService.resendConfirmationEmail(email);
   }
 }
