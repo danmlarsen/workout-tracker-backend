@@ -31,7 +31,7 @@ export class AuthService {
     const foundUser = await this.usersService.getUser({ email: data.email });
     if (foundUser) throw new ConflictException('Email is already in use');
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    const hashedPassword = await this.hashPassword(data.password);
 
     const newUser = await this.usersService.createUser({
       email: data.email,
@@ -189,11 +189,93 @@ export class AuthService {
     };
   }
 
+  async requestPasswordReset(email: string) {
+    const user = await this.usersService.getUser({ email });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Invalidate existing unused tokens
+    await this.prismaService.passwordResetToken.updateMany({
+      where: {
+        userId: user.id,
+        isUsed: false,
+      },
+      data: {
+        isUsed: true,
+        usedAt: new Date(),
+      },
+    });
+
+    const token = await this.createPasswordResetToken(user.id);
+
+    await this.emailService.sendPasswordResetEmail(user.email, token.token);
+
+    return {
+      success: true,
+      message: 'A password reset link has been sent',
+    };
+  }
+
+  async resetPassword(tokenString: string, newPassword: string) {
+    const token = await this.prismaService.passwordResetToken.findUnique({
+      where: { token: tokenString },
+      include: { user: true },
+    });
+
+    if (!token || token.expiresAt < new Date() || token.isUsed) {
+      throw new UnauthorizedException('Invalid or expired reset token');
+    }
+
+    const hashedPassword = await this.hashPassword(newPassword);
+
+    // Update password, mark token as used, and invalidate refresh tokens
+    await this.prismaService.$transaction([
+      this.prismaService.passwordResetToken.update({
+        where: { id: token.id },
+        data: {
+          isUsed: true,
+          usedAt: new Date(),
+        },
+      }),
+      this.prismaService.user.update({
+        where: { id: token.userId },
+        data: {
+          password: hashedPassword,
+          refreshToken: null, // Invalidate all sessions
+        },
+      }),
+    ]);
+
+    return {
+      success: true,
+      message: 'Password reset successfully',
+    };
+  }
+
+  private hashPassword(password: string) {
+    return bcrypt.hash(password, 10);
+  }
+
   private createEmailConfirmationToken(userId: number) {
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     return this.prismaService.emailConfirmationToken.create({
+      data: {
+        token,
+        expiresAt,
+        userId,
+      },
+    });
+  }
+
+  private createPasswordResetToken(userId: number) {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    return this.prismaService.passwordResetToken.create({
       data: {
         token,
         expiresAt,

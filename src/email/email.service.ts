@@ -10,17 +10,35 @@ export class EmailService {
   }
 
   async sendConfirmationEmail(email: string, token: string) {
-    const confirmationUrl = `${this.configService.get('FRONTEND_URL')}/confirm-email?token=${token}`;
+    const confirmationUrl = `${this.configService.getOrThrow('FRONTEND_URL')}/confirm-email?token=${token}`;
     const emailContent = {
       to: email,
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       from: this.configService.getOrThrow('SENDGRID_VERIFIED_SENDER_EMAIL'),
       subject: 'Confirm your email address',
       html: `
-        <h1>Welcome to Workout Tracker!</h1>
+        <h1>Welcome to NextLift - Workout Tracker</h1>
         <p>Please click the link below to confirm your email address:</p>
         <a href="${confirmationUrl}">Confirm Email</a>
         <p>This link will expire in 24 hours.</p>
+      `,
+    };
+
+    return await sgMail.send(emailContent);
+  }
+
+  async sendPasswordResetEmail(email: string, token: string) {
+    const resetLink = `${this.configService.getOrThrow('FRONTEND_URL')}/reset-password?token=${token}`;
+    const emailContent = {
+      to: email,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      from: this.configService.getOrThrow('SENDGRID_VERIFIED_SENDER_EMAIL'),
+      subject: 'Your password reset request',
+      html: `
+        <h1>NextLift - Workout Tracker</h1>
+        <p>Hey, ${email}! You requested to reset your password.</p>
+        <p>Here is your password reset link: <a href="${resetLink}">Reset Password</a></p>
+        <p>This link will expire in 15 minutes.</p>
       `,
     };
 

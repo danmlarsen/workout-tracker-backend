@@ -139,4 +139,17 @@ export class AuthController {
   async resendConfirmation(@Body('email') email: string) {
     return this.authService.resendConfirmationEmail(email);
   }
+
+  @Post('request-password-reset')
+  async requestPasswordReset(@Body('email') email: string) {
+    return this.authService.requestPasswordReset(email);
+  }
+
+  @Post('reset-password/:token')
+  async resetPassword(
+    @Param('token') token: string,
+    @Body('password') password: string,
+  ) {
+    return this.authService.resetPassword(token, password);
+  }
 }
