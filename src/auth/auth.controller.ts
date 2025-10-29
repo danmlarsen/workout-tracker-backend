@@ -22,6 +22,7 @@ import {
   REFRESH_TOKEN_COOKIE,
 } from 'src/common/constants';
 import { type AuthUser } from 'src/common/types/auth-user.interface';
+import { ResetPasswordDto } from './dtos/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -145,11 +146,11 @@ export class AuthController {
     return this.authService.requestPasswordReset(email);
   }
 
-  @Post('reset-password/:token')
+  @Post('password-reset/:token')
   async resetPassword(
     @Param('token') token: string,
-    @Body('password') password: string,
+    @Body() body: ResetPasswordDto,
   ) {
-    return this.authService.resetPassword(token, password);
+    return this.authService.resetPassword(token, body);
   }
 }

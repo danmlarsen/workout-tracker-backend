@@ -16,6 +16,7 @@ import * as crypto from 'crypto';
 import { EmailService } from 'src/email/email.service';
 import { EmailNotConfirmedException } from 'src/common/exceptions/email-not-confirmed-exception';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ResetPasswordDto } from './dtos/reset-password.dto';
 
 @Injectable()
 export class AuthService {
@@ -218,7 +219,7 @@ export class AuthService {
     };
   }
 
-  async resetPassword(tokenString: string, newPassword: string) {
+  async resetPassword(tokenString: string, data: ResetPasswordDto) {
     const token = await this.prismaService.passwordResetToken.findUnique({
       where: { token: tokenString },
       include: { user: true },
@@ -228,7 +229,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid or expired reset token');
     }
 
-    const hashedPassword = await this.hashPassword(newPassword);
+    const hashedPassword = await this.hashPassword(data.password);
 
     // Update password, mark token as used, and invalidate refresh tokens
     await this.prismaService.$transaction([
