@@ -15,10 +15,12 @@ import { JwtPayload } from 'src/common/types/jwt-payload.interface';
 import * as crypto from 'crypto';
 import { EmailService } from 'src/email/email.service';
 import { EmailNotConfirmedException } from 'src/common/exceptions/email-not-confirmed-exception';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class AuthService {
   constructor(
+    private readonly prismaService: PrismaService,
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
@@ -31,50 +33,57 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
-    const { emailConfirmationToken, emailConfirmationTokenExpiry } =
-      this.generateEmailConfirmationToken();
-
     const newUser = await this.usersService.createUser({
       email: data.email,
       password: hashedPassword,
       isEmailConfirmed: false,
-      emailConfirmationToken,
-      emailConfirmationTokenExpiry,
     });
 
-    await this.emailService.sendConfirmationEmail(
-      newUser.email,
-      emailConfirmationToken,
-    );
+    const token = await this.createEmailConfirmationToken(newUser.id);
+
+    await this.emailService.sendConfirmationEmail(newUser.email, token.token);
 
     return plainToInstance(UserResponseDto, newUser, {
       excludeExtraneousValues: true,
     });
   }
 
-  async confirmEmail(token: string) {
-    const user = await this.usersService.getUser({
-      emailConfirmationToken: token,
+  async confirmEmail(tokenString: string) {
+    const token = await this.prismaService.emailConfirmationToken.findUnique({
+      where: { token: tokenString },
+      include: { user: true },
     });
 
-    if (!user) {
+    if (!token) {
       throw new UnauthorizedException('Invalid confirmation token');
     }
-    if (
-      !user.emailConfirmationTokenExpiry ||
-      user.emailConfirmationTokenExpiry < new Date()
-    ) {
+
+    if (token.expiresAt < new Date()) {
       throw new UnauthorizedException('Confirmation token has expired');
     }
-    if (user.isEmailConfirmed) {
-      new ConflictException('Email is already confirmed');
+
+    if (token.isUsed) {
+      throw new ConflictException('Token has already been used');
     }
 
-    await this.usersService.updateUser(user.id, {
-      isEmailConfirmed: true,
-      emailConfirmationToken: null,
-      emailConfirmationTokenExpiry: null,
-    });
+    if (token.user.isEmailConfirmed) {
+      throw new ConflictException('Email is already confirmed');
+    }
+
+    // Mark token as used and confirm user email
+    await this.prismaService.$transaction([
+      this.prismaService.emailConfirmationToken.update({
+        where: { id: token.id },
+        data: {
+          isUsed: true,
+          usedAt: new Date(),
+        },
+      }),
+      this.prismaService.user.update({
+        where: { id: token.userId },
+        data: { isEmailConfirmed: true },
+      }),
+    ]);
 
     return {
       success: true,
@@ -93,18 +102,21 @@ export class AuthService {
       throw new ConflictException('Email is already confirmed');
     }
 
-    const { emailConfirmationToken, emailConfirmationTokenExpiry } =
-      this.generateEmailConfirmationToken();
-
-    await this.usersService.updateUser(user.id, {
-      emailConfirmationToken,
-      emailConfirmationTokenExpiry,
+    // Invalidate existing unused tokens
+    await this.prismaService.emailConfirmationToken.updateMany({
+      where: {
+        userId: user.id,
+        isUsed: false,
+      },
+      data: {
+        isUsed: true,
+        usedAt: new Date(),
+      },
     });
 
-    await this.emailService.sendConfirmationEmail(
-      user.email,
-      emailConfirmationToken,
-    );
+    const token = await this.createEmailConfirmationToken(user.id);
+
+    await this.emailService.sendConfirmationEmail(user.email, token.token);
 
     return {
       success: true,
@@ -177,12 +189,16 @@ export class AuthService {
     };
   }
 
-  private generateEmailConfirmationToken() {
-    const emailConfirmationToken = crypto.randomBytes(32).toString('hex');
-    const emailConfirmationTokenExpiry = new Date(
-      Date.now() + 24 * 60 * 60 * 1000,
-    ); // 24 hours
+  private createEmailConfirmationToken(userId: number) {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    return { emailConfirmationToken, emailConfirmationTokenExpiry };
+    return this.prismaService.emailConfirmationToken.create({
+      data: {
+        token,
+        expiresAt,
+        userId,
+      },
+    });
   }
 }

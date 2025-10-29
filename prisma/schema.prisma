@@ -20,14 +20,43 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   refreshToken String?
-
   isEmailConfirmed Boolean @default(false)
-  emailConfirmationToken String?
-  emailConfirmationTokenExpiry DateTime?
 
   workouts Workout[]
   exercises Exercise[]
   personalRecords PersonalRecord[]
+  emailConfirmationTokens EmailConfirmationToken[]
+  passwordResetTokens PasswordResetToken[]
+}
+
+model EmailConfirmationToken {
+  id Int @default(autoincrement()) @id
+  token String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  usedAt DateTime?
+  isUsed Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  @@index([token])
+  @@index([userId, isUsed])
+}
+
+model PasswordResetToken {
+  id Int @default(autoincrement()) @id
+  token String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  usedAt DateTime?
+  isUsed Boolean @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int
+
+  @@index([token])
+  @@index([userId, isUsed])
 }
 
 model Exercise {
