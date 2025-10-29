@@ -14,6 +14,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtPayload } from 'src/common/types/jwt-payload.interface';
 import * as crypto from 'crypto';
 import { EmailService } from 'src/email/email.service';
+import { EmailNotConfirmedException } from 'src/common/exceptions/email-not-confirmed-exception';
 
 @Injectable()
 export class AuthService {
@@ -116,10 +117,12 @@ export class AuthService {
     if (!user) return null;
 
     const isMatch = await bcrypt.compare(data.password, user.password);
-    if (!isMatch) return null;
+    if (!isMatch) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
     if (!user.isEmailConfirmed) {
-      return null;
+      throw new EmailNotConfirmedException();
     }
 
     return plainToInstance(UserResponseDto, user, {
