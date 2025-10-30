@@ -26,6 +26,7 @@ import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { ResendConfirmationDto } from './dtos/resend-confirmation.dto';
 import { RequestPasswordResetDto } from './dtos/request-password-reset.dto';
 import { ClientInfo } from 'src/common/decorators/client-info.decorator';
+import { ChangePasswordDto } from './dtos/change-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -132,6 +133,19 @@ export class AuthController {
   @Get('whoami')
   whoAmI(@CurrentUser() user: AuthUser) {
     return user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('change-password')
+  async changePassword(
+    @CurrentUser() user: AuthUser,
+    @Body() body: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(
+      user.id,
+      body.currentPassword,
+      body.newPassword,
+    );
   }
 
   @Get('confirm/:token')
