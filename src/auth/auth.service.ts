@@ -105,6 +105,29 @@ export class AuthService {
       throw new ConflictException('Email is already confirmed');
     }
 
+    // Check if user has requested in the last 30 seconds
+    const recentRequest =
+      await this.prismaService.emailConfirmationToken.findFirst({
+        where: {
+          userId: user.id,
+          createdAt: {
+            gte: new Date(Date.now() - 30 * 1000), // Last 30 seconds
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+
+    if (recentRequest) {
+      const timeLeft = Math.ceil(
+        (30000 - (Date.now() - recentRequest.createdAt.getTime())) / 1000,
+      );
+      throw new UnauthorizedException(
+        `Please wait ${timeLeft} seconds before requesting another email confirmation.`,
+      );
+    }
+
     // Invalidate existing unused tokens
     await this.prismaService.emailConfirmationToken.updateMany({
       where: {
@@ -192,11 +215,39 @@ export class AuthService {
     };
   }
 
-  async requestPasswordReset(data: RequestPasswordResetDto) {
+  async requestPasswordReset(
+    data: RequestPasswordResetDto,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     const user = await this.usersService.getUser({ email: data.email });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
+    }
+
+    // Check if user has requested a reset in the last 30 seconds
+    const recentRequest = await this.prismaService.passwordResetToken.findFirst(
+      {
+        where: {
+          userId: user.id,
+          createdAt: {
+            gte: new Date(Date.now() - 30 * 1000), // Last 30 seconds
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      },
+    );
+
+    if (recentRequest) {
+      const timeLeft = Math.ceil(
+        (30000 - (Date.now() - recentRequest.createdAt.getTime())) / 1000,
+      );
+      throw new UnauthorizedException(
+        `Please wait ${timeLeft} seconds before requesting another password reset.`,
+      );
     }
 
     // Invalidate existing unused tokens
@@ -211,7 +262,11 @@ export class AuthService {
       },
     });
 
-    const token = await this.createPasswordResetToken(user.id);
+    const token = await this.createPasswordResetToken(
+      user.id,
+      ipAddress,
+      userAgent,
+    );
 
     await this.emailService.sendPasswordResetEmail(user.email, token.token);
 
@@ -274,7 +329,11 @@ export class AuthService {
     });
   }
 
-  private createPasswordResetToken(userId: number) {
+  private createPasswordResetToken(
+    userId: number,
+    ipAddress?: string,
+    userAgent?: string,
+  ) {
     const token = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
@@ -283,6 +342,8 @@ export class AuthService {
         token,
         expiresAt,
         userId,
+        ipAddress,
+        userAgent,
       },
     });
   }

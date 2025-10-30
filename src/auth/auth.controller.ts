@@ -25,6 +25,7 @@ import { type AuthUser } from 'src/common/types/auth-user.interface';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { ResendConfirmationDto } from './dtos/resend-confirmation.dto';
 import { RequestPasswordResetDto } from './dtos/request-password-reset.dto';
+import { ClientInfo } from 'src/common/decorators/client-info.decorator';
 
 @Controller('auth')
 export class AuthController {
@@ -144,8 +145,15 @@ export class AuthController {
   }
 
   @Post('request-password-reset')
-  async requestPasswordReset(@Body() body: RequestPasswordResetDto) {
-    return this.authService.requestPasswordReset(body);
+  async requestPasswordReset(
+    @Body() body: RequestPasswordResetDto,
+    @ClientInfo() clientInfo: ClientInfo,
+  ) {
+    return this.authService.requestPasswordReset(
+      body,
+      clientInfo.ip,
+      clientInfo.userAgent,
+    );
   }
 
   @Post('password-reset/:token')

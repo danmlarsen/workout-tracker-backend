@@ -51,6 +51,8 @@ model PasswordResetToken {
   createdAt DateTime @default(now())
   usedAt DateTime?
   isUsed Boolean @default(false)
+  ipAddress String?
+  userAgent String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int
