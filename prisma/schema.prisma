@@ -29,6 +29,14 @@ model User {
   passwordResetTokens PasswordResetToken[]
 }
 
+model DeletedUser {
+  id Int @default(autoincrement()) @id
+  originalUserId Int
+  email String
+  createdAt DateTime
+  deletedAt DateTime @default(now())
+}
+
 model EmailConfirmationToken {
   id Int @default(autoincrement()) @id
   token String @unique
