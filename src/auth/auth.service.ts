@@ -17,6 +17,8 @@ import { EmailService } from 'src/email/email.service';
 import { EmailNotConfirmedException } from 'src/common/exceptions/email-not-confirmed-exception';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
+import { ResendConfirmationDto } from './dtos/resend-confirmation.dto';
+import { RequestPasswordResetDto } from './dtos/request-password-reset.dto';
 
 @Injectable()
 export class AuthService {
@@ -92,8 +94,8 @@ export class AuthService {
     };
   }
 
-  async resendConfirmationEmail(email: string) {
-    const user = await this.usersService.getUser({ email });
+  async resendConfirmationEmail(data: ResendConfirmationDto) {
+    const user = await this.usersService.getUser({ email: data.email });
 
     if (!user) {
       throw new UnauthorizedException('User not found');
@@ -190,8 +192,8 @@ export class AuthService {
     };
   }
 
-  async requestPasswordReset(email: string) {
-    const user = await this.usersService.getUser({ email });
+  async requestPasswordReset(data: RequestPasswordResetDto) {
+    const user = await this.usersService.getUser({ email: data.email });
 
     if (!user) {
       throw new UnauthorizedException('User not found');

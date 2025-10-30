@@ -23,6 +23,8 @@ import {
 } from 'src/common/constants';
 import { type AuthUser } from 'src/common/types/auth-user.interface';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
+import { ResendConfirmationDto } from './dtos/resend-confirmation.dto';
+import { RequestPasswordResetDto } from './dtos/request-password-reset.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -137,13 +139,13 @@ export class AuthController {
   }
 
   @Post('resend-confirmation')
-  async resendConfirmation(@Body('email') email: string) {
-    return this.authService.resendConfirmationEmail(email);
+  async resendConfirmation(@Body() body: ResendConfirmationDto) {
+    return this.authService.resendConfirmationEmail(body);
   }
 
   @Post('request-password-reset')
-  async requestPasswordReset(@Body('email') email: string) {
-    return this.authService.requestPasswordReset(email);
+  async requestPasswordReset(@Body() body: RequestPasswordResetDto) {
+    return this.authService.requestPasswordReset(body);
   }
 
   @Post('password-reset/:token')
