@@ -1,13 +1,24 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import sgMail from '@sendgrid/mail';
+
+// Simple interface for mail provider
+export interface MailProvider {
+  send(emailData: {
+    to: string;
+    from: string;
+    subject: string;
+    html: string;
+  }): Promise<void>;
+}
+
+export const MAIL_PROVIDER = 'MAIL_PROVIDER';
 
 @Injectable()
 export class EmailService {
-  constructor(private configService: ConfigService) {
-    const apikey: string = this.configService.getOrThrow('SENDGRID_API_KEY');
-    sgMail.setApiKey(apikey);
-  }
+  constructor(
+    private configService: ConfigService,
+    @Inject(MAIL_PROVIDER) private mailProvider: MailProvider,
+  ) {}
 
   async sendConfirmationEmail(email: string, token: string) {
     const confirmationUrl = `${this.configService.getOrThrow('FRONTEND_URL')}/confirm-email?token=${token}`;
@@ -24,7 +35,7 @@ export class EmailService {
       `,
     };
 
-    return await sgMail.send(emailContent);
+    return await this.mailProvider.send(emailContent);
   }
 
   async sendPasswordResetEmail(email: string, token: string) {
@@ -42,6 +53,6 @@ export class EmailService {
       `,
     };
 
-    return await sgMail.send(emailContent);
+    return await this.mailProvider.send(emailContent);
   }
 }
