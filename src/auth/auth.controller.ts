@@ -27,6 +27,8 @@ import { ResendConfirmationDto } from './dtos/resend-confirmation.dto';
 import { RequestPasswordResetDto } from './dtos/request-password-reset.dto';
 import { ClientInfo } from 'src/common/decorators/client-info.decorator';
 import { ChangePasswordDto } from './dtos/change-password.dto';
+import { plainToInstance } from 'class-transformer';
+import { UserResponseDto } from './dtos/user-response.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -36,8 +38,11 @@ export class AuthController {
   ) {}
 
   @Post('register')
-  register(@Body() body: RegisterUserDto) {
-    return this.authService.registerUser(body);
+  async register(@Body() body: RegisterUserDto) {
+    const newUser = await this.authService.registerUser(body);
+    return plainToInstance(UserResponseDto, newUser, {
+      excludeExtraneousValues: true,
+    });
   }
 
   @UseGuards(LocalAuthGuard)

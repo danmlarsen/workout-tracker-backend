@@ -46,9 +46,7 @@ export class AuthService {
 
     await this.emailService.sendConfirmationEmail(newUser.email, token.token);
 
-    return plainToInstance(UserResponseDto, newUser, {
-      excludeExtraneousValues: true,
-    });
+    return newUser;
   }
 
   async changePassword(
@@ -351,7 +349,7 @@ export class AuthService {
     };
   }
 
-  private hashPassword(password: string) {
+  hashPassword(password: string) {
     return bcrypt.hash(password, 10);
   }
 
