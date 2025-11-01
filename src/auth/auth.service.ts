@@ -349,7 +349,7 @@ export class AuthService {
     };
   }
 
-  hashPassword(password: string) {
+  private hashPassword(password: string) {
     return bcrypt.hash(password, 10);
   }
 
