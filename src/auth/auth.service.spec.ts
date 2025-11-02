@@ -29,6 +29,7 @@ const mockUser: User = {
   lastLoginAt: new Date(),
   refreshToken: null,
   isEmailConfirmed: true,
+  isActive: true,
 };
 
 const mockUsersService: Partial<UsersService> = {
@@ -249,6 +250,22 @@ describe('AuthService', () => {
 
       await expect(service.validateUser(loginDto)).rejects.toThrow(
         EmailNotConfirmedException,
+      );
+    });
+
+    it('should throw UnauthorizedException if user is disabled', async () => {
+      const unconfirmedUser = { ...mockUser, isActive: false };
+      (mockUsersService.getUser as jest.Mock).mockResolvedValueOnce(
+        unconfirmedUser,
+      );
+
+      const loginDto = {
+        email: 'test@test.com',
+        password: 'password',
+      };
+
+      await expect(service.validateUser(loginDto)).rejects.toThrow(
+        UnauthorizedException,
       );
     });
   });

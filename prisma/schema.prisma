@@ -22,6 +22,7 @@ model User {
   lastLoginAt DateTime?
   refreshToken String?
   isEmailConfirmed Boolean @default(false)
+  isActive Boolean @default(true)
 
   workouts Workout[]
   exercises Exercise[]

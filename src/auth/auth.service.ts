@@ -195,6 +195,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email and/or password');
     }
 
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is disabled');
+    }
+
     if (!user.isEmailConfirmed) {
       throw new EmailNotConfirmedException();
     }
@@ -241,6 +245,10 @@ export class AuthService {
 
     const isValid = await bcrypt.compare(refreshToken, user.refreshToken);
     if (!isValid) throw new UnauthorizedException('Invalid refresh token');
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is disabled');
+    }
 
     const newPayload: JwtPayload = {
       sub: user.id,
