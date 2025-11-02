@@ -26,6 +26,7 @@ const mockUser: User = {
   password: 'password',
   createdAt: new Date(),
   updatedAt: new Date(),
+  lastLoginAt: new Date(),
   refreshToken: null,
   isEmailConfirmed: true,
 };

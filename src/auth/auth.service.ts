@@ -216,6 +216,7 @@ export class AuthService {
     const hashedRefreshToken = await bcrypt.hash(refresh_token, 10);
     await this.usersService.updateUser(user.id, {
       refreshToken: hashedRefreshToken,
+      lastLoginAt: new Date(),
     });
 
     return {
