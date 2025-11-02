@@ -210,10 +210,7 @@ describe('AuthService', () => {
 
       const result = await service.validateUser(loginDto);
 
-      expect(result).toEqual({
-        id: mockUser.id,
-        email: mockUser.email,
-      });
+      expect(result).toEqual(mockUser);
     });
 
     it('should return null when user is not found', async () => {

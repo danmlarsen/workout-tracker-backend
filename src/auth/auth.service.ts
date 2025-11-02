@@ -7,7 +7,6 @@ import { UsersService } from 'src/users/users.service';
 import { RegisterUserDto } from './dtos/register-user.dto';
 import * as bcrypt from 'bcrypt';
 import { LoginUserDto } from './dtos/login-user.dto';
-import { plainToInstance } from 'class-transformer';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -200,9 +199,7 @@ export class AuthService {
       throw new EmailNotConfirmedException();
     }
 
-    return plainToInstance(UserResponseDto, user, {
-      excludeExtraneousValues: true,
-    });
+    return user;
   }
 
   async login(user: UserResponseDto) {
@@ -222,6 +219,8 @@ export class AuthService {
     });
 
     return {
+      userId: user.id,
+      email: user.email,
       access_token,
       refresh_token,
     };

@@ -17,10 +17,7 @@ import { type Response } from 'express';
 import { ConfigService } from '@nestjs/config';
 import ms, { StringValue } from 'ms';
 import { CurrentUser } from 'src/common/decorators/current-user.decorator';
-import {
-  // ACCESS_TOKEN_COOKIE,
-  REFRESH_TOKEN_COOKIE,
-} from 'src/common/constants';
+import { REFRESH_TOKEN_COOKIE } from 'src/common/constants';
 import { type AuthUser } from 'src/common/types/auth-user.interface';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { ResendConfirmationDto } from './dtos/resend-confirmation.dto';
@@ -51,17 +48,8 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { access_token, refresh_token } = await this.authService.login(user);
-
-    // res.cookie(ACCESS_TOKEN_COOKIE, access_token, {
-    //   httpOnly: true,
-    //   secure: process.env.NODE_ENV === 'production',
-    //   sameSite: 'lax',
-    //   maxAge: ms(
-    //     (this.configService.get<string>('JWT_EXP') ||
-    //       '15m') as unknown as StringValue,
-    //   ),
-    // });
+    const { access_token, refresh_token, ...loginData } =
+      await this.authService.login(user);
 
     res.cookie(REFRESH_TOKEN_COOKIE, refresh_token, {
       httpOnly: true,
@@ -73,7 +61,7 @@ export class AuthController {
       ),
     });
 
-    return { access_token, refresh_token };
+    return { access_token, refresh_token, ...loginData };
   }
 
   @Post('refresh')
@@ -103,28 +91,11 @@ export class AuthController {
 
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
-
-    // res.cookie(ACCESS_TOKEN_COOKIE, access_token, {
-    //   httpOnly: true,
-    //   secure: process.env.NODE_ENV === 'production',
-    //   sameSite: 'lax',
-    //   maxAge: ms(
-    //     (this.configService.get<string>('JWT_EXP') ||
-    //       '15m') as unknown as StringValue,
-    //   ),
-    // });
-
-    // return { access_token };
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {
-    // res.clearCookie(ACCESS_TOKEN_COOKIE, {
-    //   httpOnly: true,
-    //   secure: process.env.NODE_ENV === 'production',
-    //   sameSite: 'lax',
-    // });
     res.clearCookie(REFRESH_TOKEN_COOKIE, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
