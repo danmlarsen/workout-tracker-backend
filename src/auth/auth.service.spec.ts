@@ -9,6 +9,8 @@ import { EmailService } from 'src/email/email.service';
 import { Prisma, User } from '@prisma/client';
 import { RegisterUserDto } from './dtos/register-user.dto';
 import bcrypt from 'bcrypt';
+import { UnauthorizedException } from '@nestjs/common';
+import { EmailNotConfirmedException } from 'src/common/exceptions/email-not-confirmed-exception';
 
 const mockPrismaService = {
   emailConfirmationToken: {
@@ -21,7 +23,7 @@ const mockPrismaService = {
 const mockUser: User = {
   id: 1,
   email: 'test@test.com',
-  password: 'hashedPassword',
+  password: 'password',
   createdAt: new Date(),
   updatedAt: new Date(),
   refreshToken: null,
@@ -189,6 +191,66 @@ describe('AuthService', () => {
 
       await expect(service.registerUser(newUserInput)).rejects.toThrow(
         'Email service unavailable',
+      );
+    });
+  });
+
+  describe('validateUser()', () => {
+    beforeEach(async () => {
+      // Hash the password for the mock user
+      const hashedPassword = await bcrypt.hash('password', 10);
+      mockUser.password = hashedPassword;
+    });
+
+    it('should return user when valid email and password are provided', async () => {
+      const loginDto = {
+        email: 'test@test.com',
+        password: 'password',
+      };
+
+      const result = await service.validateUser(loginDto);
+
+      expect(result).toEqual({
+        id: mockUser.id,
+        email: mockUser.email,
+      });
+    });
+
+    it('should return null when user is not found', async () => {
+      const loginDto = {
+        email: 'nonexistent@test.com',
+        password: 'password',
+      };
+
+      const result = await service.validateUser(loginDto);
+
+      expect(result).toBeNull();
+    });
+
+    it('should throw UnauthorizedException when password is incorrect', async () => {
+      const loginDto = {
+        email: 'test@test.com',
+        password: 'wrongpassword',
+      };
+
+      await expect(service.validateUser(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('should throw EmailNotConfirmedException when email is not confirmed', async () => {
+      const unconfirmedUser = { ...mockUser, isEmailConfirmed: false };
+      (mockUsersService.getUser as jest.Mock).mockResolvedValueOnce(
+        unconfirmedUser,
+      );
+
+      const loginDto = {
+        email: 'test@test.com',
+        password: 'password',
+      };
+
+      await expect(service.validateUser(loginDto)).rejects.toThrow(
+        EmailNotConfirmedException,
       );
     });
   });
