@@ -79,7 +79,7 @@ describe('AuthService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('registerUser', () => {
+  describe('registerUser()', () => {
     let newUserInput: RegisterUserDto;
 
     beforeEach(() => {
