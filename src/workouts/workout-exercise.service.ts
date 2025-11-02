@@ -75,7 +75,7 @@ export class WorkoutExerciseService {
 
     return this.prismaService.workoutExercise.update({
       where: { id },
-      data: { ...data, updatedAt: new Date() },
+      data,
     });
   }
 

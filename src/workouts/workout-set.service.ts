@@ -115,7 +115,7 @@ export class WorkoutSetService {
 
       const updatedSet = await tx.workoutSet.update({
         where: { id },
-        data: { ...updateData, updatedAt: new Date() },
+        data: { ...updateData },
       });
       return updatedSet;
     });
