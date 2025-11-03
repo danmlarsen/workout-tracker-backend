@@ -7,6 +7,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ExercisesModule } from './exercises/exercises.module';
 import { LoggerModule } from 'nestjs-pino';
 import { EmailModule } from './email/email.module';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { EmailModule } from './email/email.module';
     AuthModule,
     ExercisesModule,
     EmailModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [],
