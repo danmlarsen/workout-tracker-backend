@@ -212,7 +212,9 @@ export class AuthService {
       email: user.email,
     };
 
-    const access_token = this.jwtService.sign(payload);
+    const access_token = this.jwtService.sign(payload, {
+      expiresIn: this.configService.get('JWT_EXP') || '15m',
+    });
     const refresh_token = this.jwtService.sign(payload, {
       expiresIn: this.configService.get('JWT_REFRESH_EXP') || '30d',
     });
@@ -256,7 +258,9 @@ export class AuthService {
     };
 
     return {
-      access_token: this.jwtService.sign(newPayload),
+      access_token: this.jwtService.sign(newPayload, {
+        expiresIn: this.configService.get('JWT_EXP') || '15m',
+      }),
     };
   }
 
