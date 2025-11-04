@@ -21,7 +21,7 @@ import { PrismaModule } from 'src/prisma/prisma.module';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         secret: configService.getOrThrow('JWT_SECRET'),
-        signOptions: { expiresIn: configService.getOrThrow('JWT_EXP') },
+        signOptions: { expiresIn: configService.get('JWT_EXP') || '15m' },
       }),
     }),
     EmailModule,
