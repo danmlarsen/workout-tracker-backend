@@ -10,9 +10,22 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     {
       provide: MAIL_PROVIDER,
       useFactory: (configService: ConfigService) => {
-        const apiKey: string = configService.getOrThrow('SENDGRID_API_KEY');
-        sgMail.setApiKey(apiKey);
-        return sgMail;
+        const apiKey: string | undefined =
+          configService.get('SENDGRID_API_KEY');
+
+        if (apiKey) {
+          sgMail.setApiKey(apiKey);
+          return sgMail;
+        }
+
+        return {
+          send: (emailData: any) => {
+            console.log(
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+              `Mock email sent to: ${emailData.to} - Subject: ${emailData.subject}`,
+            );
+          },
+        };
       },
       inject: [ConfigService],
     },

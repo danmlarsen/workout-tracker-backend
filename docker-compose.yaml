@@ -13,7 +13,7 @@ services:
       - .env
     environment:
       - NODE_ENV=development
-    # user: '${UID}:${GID}'
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
     restart: unless-stopped
     depends_on:
       db:
@@ -22,8 +22,10 @@ services:
   db:
     image: postgres:15-alpine
     container_name: workout-postgres
-    env_file:
-      - .env
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
     ports:
       - '5432:5432'
     volumes:
@@ -50,6 +52,7 @@ services:
       - .env
     environment:
       - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
     command: ['npx', 'prisma', 'studio', '--hostname', '0.0.0.0']
     depends_on:
       db:
