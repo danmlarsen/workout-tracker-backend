@@ -23,7 +23,7 @@ export class WorkoutManagementService {
       status: options?.status,
     };
 
-    return this.prismaService.workout.findFirst({
+    const workout = await this.prismaService.workout.findFirst({
       where: whereClause,
       orderBy: { startedAt: 'desc' },
       include: {
@@ -46,6 +46,29 @@ export class WorkoutManagementService {
         },
       },
     });
+
+    // Expire active workouts after 12 hours
+    if (workout && workout.status === 'ACTIVE') {
+      const startedAt = new Date(workout.startedAt);
+      const now = new Date();
+      const twelveHoursInMs = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+
+      // Check if 12 hours have passed since the workout started
+      if (now.getTime() - startedAt.getTime() >= twelveHoursInMs) {
+        const expiredAt = new Date(startedAt.getTime() + twelveHoursInMs);
+
+        await this.prismaService.workout.update({
+          where: { id: workout.id },
+          data: {
+            status: 'COMPLETED',
+            completedAt: expiredAt,
+          },
+        });
+        return null;
+      }
+    }
+
+    return workout;
   }
 
   async updateWorkout(id: number, userId: number, data: UpdateWorkoutDto) {
