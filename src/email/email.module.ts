@@ -10,8 +10,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
     {
       provide: MAIL_PROVIDER,
       useFactory: (configService: ConfigService) => {
-        const apiKey: string | undefined =
-          configService.get('SENDGRID_API_KEY');
+        const apiKey = configService.get<string>('SENDGRID_API_KEY');
 
         if (apiKey) {
           sgMail.setApiKey(apiKey);

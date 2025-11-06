@@ -21,11 +21,12 @@ export class EmailService {
   ) {}
 
   async sendConfirmationEmail(email: string, token: string) {
-    const confirmationUrl = `${this.configService.getOrThrow('FRONTEND_URL')}/confirm-email?token=${token}`;
+    const confirmationUrl = `${this.configService.getOrThrow<string>('FRONTEND_URL')}/confirm-email?token=${token}`;
     const emailContent = {
       to: email,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      from: this.configService.getOrThrow('SENDGRID_VERIFIED_SENDER_EMAIL'),
+      from: this.configService.getOrThrow<string>(
+        'SENDGRID_VERIFIED_SENDER_EMAIL',
+      ),
       subject: 'Confirm your email address',
       html: `
         <h1>Welcome to NextLift - Workout Tracker</h1>
@@ -39,11 +40,12 @@ export class EmailService {
   }
 
   async sendPasswordResetEmail(email: string, token: string) {
-    const resetLink = `${this.configService.getOrThrow('FRONTEND_URL')}/reset-password?token=${token}`;
+    const resetLink = `${this.configService.getOrThrow<string>('FRONTEND_URL')}/reset-password?token=${token}`;
     const emailContent = {
       to: email,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      from: this.configService.getOrThrow('SENDGRID_VERIFIED_SENDER_EMAIL'),
+      from: this.configService.getOrThrow<string>(
+        'SENDGRID_VERIFIED_SENDER_EMAIL',
+      ),
       subject: 'Your password reset request',
       html: `
         <h1>NextLift - Workout Tracker</h1>
