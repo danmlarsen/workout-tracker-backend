@@ -179,8 +179,8 @@ export class WorkoutsController {
     @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
   ) {
     return this.workoutExercise.getWorkoutExerciseSets(
-      workoutExerciseId,
       user.id,
+      workoutExerciseId,
     );
   }
 

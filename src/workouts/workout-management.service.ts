@@ -79,9 +79,13 @@ export class WorkoutManagementService {
     if (workout.status === 'ACTIVE' && data.activeDuration)
       throw new ForbiddenException('Not allowed');
 
-    return this.prismaService.workout.update({
+    await this.prismaService.workout.update({
       where: { id, userId },
       data,
+    });
+
+    return this.getWorkout(userId, {
+      id: workout.id,
     });
   }
 
@@ -161,12 +165,16 @@ export class WorkoutManagementService {
       throw new BadRequestException('Workout is already paused');
     }
 
-    return this.prismaService.workout.update({
+    await this.prismaService.workout.update({
       where: { id: workout.id },
       data: {
         isPaused: true,
         lastPauseStartTime: new Date(),
       },
+    });
+
+    return this.getWorkout(userId, {
+      id: workout.id,
     });
   }
 
@@ -186,13 +194,17 @@ export class WorkoutManagementService {
       now.getTime() - lastPauseStartTime.getTime(),
     );
 
-    return this.prismaService.workout.update({
+    await this.prismaService.workout.update({
       where: { id: workout.id },
       data: {
         isPaused: false,
         lastPauseStartTime: null,
         pauseDuration: (workout.pauseDuration || 0) + lastPauseDuration,
       },
+    });
+
+    return this.getWorkout(userId, {
+      id: workout.id,
     });
   }
 }

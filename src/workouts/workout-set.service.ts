@@ -3,10 +3,14 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
 import { UpdateWorkoutSetDto } from './dtos/update-workout-set.dto';
 import { WorkoutSetType } from './types/workout.types';
+import { WorkoutManagementService } from './workout-management.service';
 
 @Injectable()
 export class WorkoutSetService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly workoutService: WorkoutManagementService,
+  ) {}
 
   async createWorkoutSet(
     workoutExerciseId: number,
@@ -32,8 +36,12 @@ export class WorkoutSetService {
 
     const nextSetNumber = (maxSetNumber._max.setNumber ?? 0) + 1;
 
-    return this.prismaService.workoutSet.create({
+    await this.prismaService.workoutSet.create({
       data: { ...data, workoutExerciseId, setNumber: nextSetNumber },
+    });
+
+    return this.workoutService.getWorkout(userId, {
+      id: workoutExercise.workoutId,
     });
   }
 
@@ -64,7 +72,7 @@ export class WorkoutSetService {
     }
     delete updateData.completed;
 
-    return this.prismaService.$transaction(async (tx) => {
+    await this.prismaService.$transaction(async (tx) => {
       // Converting normal set to warmup
       if (
         workoutSet.type !== WorkoutSetType.WARMUP.toString() &&
@@ -113,11 +121,14 @@ export class WorkoutSetService {
         updateData.setNumber = 1;
       }
 
-      const updatedSet = await tx.workoutSet.update({
+      return tx.workoutSet.update({
         where: { id },
         data: { ...updateData },
       });
-      return updatedSet;
+    });
+
+    return this.workoutService.getWorkout(userId, {
+      id: workoutSet.workoutExercise.workoutId,
     });
   }
 
@@ -135,7 +146,7 @@ export class WorkoutSetService {
       throw new ForbiddenException('Not allowed');
     }
 
-    return this.prismaService.$transaction(async (tx) => {
+    await this.prismaService.$transaction(async (tx) => {
       if (
         workoutSet.setNumber > 0 &&
         workoutSet.type !== WorkoutSetType.WARMUP.toString()
@@ -155,11 +166,13 @@ export class WorkoutSetService {
         });
       }
 
-      const deletedSet = await tx.workoutSet.delete({
+      return tx.workoutSet.delete({
         where: { id },
       });
+    });
 
-      return deletedSet;
+    return this.workoutService.getWorkout(userId, {
+      id: workoutSet.workoutExercise.workoutId,
     });
   }
 }

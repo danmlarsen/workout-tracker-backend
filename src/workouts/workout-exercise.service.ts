@@ -2,10 +2,14 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
 import { UpdateWorkoutExerciseDto } from './dtos/update-workout-exercise.dto';
+import { WorkoutManagementService } from './workout-management.service';
 
 @Injectable()
 export class WorkoutExerciseService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly workoutService: WorkoutManagementService,
+  ) {}
 
   async createWorkoutExercise(
     userId: number,
@@ -39,7 +43,7 @@ export class WorkoutExerciseService {
           }))
         : [{ setNumber: 1 }];
 
-    return this.prismaService.workoutExercise.create({
+    await this.prismaService.workoutExercise.create({
       data: {
         workoutId,
         exerciseId: data.exerciseId,
@@ -49,9 +53,10 @@ export class WorkoutExerciseService {
           create: setsToCreate,
         },
       },
-      include: {
-        workoutSets: true,
-      },
+    });
+
+    return this.workoutService.getWorkout(userId, {
+      id: workout.id,
     });
   }
 
@@ -73,9 +78,13 @@ export class WorkoutExerciseService {
       throw new ForbiddenException('Not allowed');
     }
 
-    return this.prismaService.workoutExercise.update({
+    await this.prismaService.workoutExercise.update({
       where: { id },
       data,
+    });
+
+    return this.workoutService.getWorkout(userId, {
+      id: workoutExercise.workoutId,
     });
   }
 
@@ -93,8 +102,12 @@ export class WorkoutExerciseService {
       throw new ForbiddenException('Not allowed');
     }
 
-    return this.prismaService.workoutExercise.delete({
+    await this.prismaService.workoutExercise.delete({
       where: { id },
+    });
+
+    return this.workoutService.getWorkout(userId, {
+      id: workoutExercise.workoutId,
     });
   }
 
