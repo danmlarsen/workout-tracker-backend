@@ -1,0 +1,24 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: |
+          echo "Building Docker image..."
+          docker build -f Dockerfile.prod -t workout-tracker-backend:latest .
+          echo "Docker build completed!"
+          docker images | grep workout-tracker-backend
