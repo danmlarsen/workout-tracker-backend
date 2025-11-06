@@ -8,6 +8,8 @@ on:
 env:
   AWS_REGION: eu-north-1
   ECR_REPOSITORY: nextlift-backend
+  ECS_CLUSTER: nextlift-cluster
+  ECS_SERVICE: nextlift-task-service
 
 jobs:
   build:
@@ -43,3 +45,27 @@ jobs:
 
           echo "✅ Image pushed successfully!"
           echo "📦 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:latest"
+
+      - name: Deploy to ECS
+        run: |
+          echo "🚀 Updating ECS service..."
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_SERVICE \
+            --force-new-deployment \
+            --region $AWS_REGION
+
+          echo "✅ ECS service update initiated!"
+          echo "⏳ Deployment in progress..."
+
+      - name: Wait for deployment to complete
+        run: |
+          echo "⏳ Waiting for service to stabilize..."
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services $ECS_SERVICE \
+            --region $AWS_REGION
+
+          echo "🎉 Deployment completed successfully!"
+          echo "🔗 API: https://api.nextlift.app"
+          echo "🔍 Health check: https://api.nextlift.app/health"
