@@ -11,7 +11,9 @@ async function bootstrap() {
   app.use(cookieParser());
   app.enableCors({
     origin:
-      process.env.NODE_ENV === 'production' ? process.env.CORS_ORIGIN : true,
+      process.env.NODE_ENV === 'production'
+        ? process.env.CORS_ORIGIN?.split(',')
+        : true,
     credentials: true,
   });
 
