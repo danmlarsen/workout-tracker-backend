@@ -10,18 +10,14 @@ env:
   ECR_REPOSITORY: nextlift-backend
   ECS_CLUSTER: nextlift-cluster
   ECS_SERVICE: nextlift-task-service
-  ECS_TASK_DEFINITION: nextlift-task
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -45,33 +41,18 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
           echo "✅ Image pushed successfully!"
-          echo "📦 Image URI: $ECR_REGISTRY/$ECR_REPOSITORY:latest"
 
-      - name: Download current task definition
+      - name: Force ECS deployment
         run: |
-          echo "📥 Downloading current task definition..."
-          aws ecs describe-task-definition \
-            --task-definition $ECS_TASK_DEFINITION \
-            --query taskDefinition > task-definition.json
+          echo "🚀 Forcing ECS to deploy new image..."
+          aws ecs update-service \
+            --cluster $ECS_CLUSTER \
+            --service $ECS_SERVICE \
+            --force-new-deployment
 
-          echo "Current task definition downloaded"
+          echo "⏳ Waiting for deployment to complete..."
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services $ECS_SERVICE
 
-      - name: Update task definition with new image
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: task-definition.json
-          container-name: nextlift-backend
-          image: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
-
-      - name: Deploy to ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
-
-      - name: Deployment complete
-        run: |
-          echo "🎉 Deployment completed successfully!"
+          echo "🎉 Deployment completed!"
