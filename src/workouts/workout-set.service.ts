@@ -4,6 +4,7 @@ import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
 import { UpdateWorkoutSetDto } from './dtos/update-workout-set.dto';
 import { WorkoutSetType } from './types/workout.types';
 import { WorkoutManagementService } from './workout-management.service';
+import { FULL_WORKOUT_INCLUDE } from './const/full-workout-include';
 
 @Injectable()
 export class WorkoutSetService {
@@ -36,12 +37,15 @@ export class WorkoutSetService {
 
     const nextSetNumber = (maxSetNumber._max.setNumber ?? 0) + 1;
 
-    await this.prismaService.workoutSet.create({
-      data: { ...data, workoutExerciseId, setNumber: nextSetNumber },
-    });
+    return this.prismaService.$transaction(async (tx) => {
+      await tx.workoutSet.create({
+        data: { ...data, workoutExerciseId, setNumber: nextSetNumber },
+      });
 
-    return this.workoutService.getWorkout(userId, {
-      id: workoutExercise.workoutId,
+      return tx.workout.findUnique({
+        where: { id: workoutExercise.workoutId },
+        include: FULL_WORKOUT_INCLUDE,
+      });
     });
   }
 
@@ -72,7 +76,7 @@ export class WorkoutSetService {
     }
     delete updateData.completed;
 
-    await this.prismaService.$transaction(async (tx) => {
+    return this.prismaService.$transaction(async (tx) => {
       // Converting normal set to warmup
       if (
         workoutSet.type !== WorkoutSetType.WARMUP.toString() &&
@@ -121,14 +125,15 @@ export class WorkoutSetService {
         updateData.setNumber = 1;
       }
 
-      return tx.workoutSet.update({
+      await tx.workoutSet.update({
         where: { id },
         data: { ...updateData },
       });
-    });
 
-    return this.workoutService.getWorkout(userId, {
-      id: workoutSet.workoutExercise.workoutId,
+      return tx.workout.findUnique({
+        where: { id: workoutSet.workoutExercise.workoutId },
+        include: FULL_WORKOUT_INCLUDE,
+      });
     });
   }
 
@@ -146,7 +151,7 @@ export class WorkoutSetService {
       throw new ForbiddenException('Not allowed');
     }
 
-    await this.prismaService.$transaction(async (tx) => {
+    return this.prismaService.$transaction(async (tx) => {
       if (
         workoutSet.setNumber > 0 &&
         workoutSet.type !== WorkoutSetType.WARMUP.toString()
@@ -166,13 +171,14 @@ export class WorkoutSetService {
         });
       }
 
-      return tx.workoutSet.delete({
+      await tx.workoutSet.delete({
         where: { id },
       });
-    });
 
-    return this.workoutService.getWorkout(userId, {
-      id: workoutSet.workoutExercise.workoutId,
+      return tx.workout.findUnique({
+        where: { id: workoutSet.workoutExercise.workoutId },
+        include: FULL_WORKOUT_INCLUDE,
+      });
     });
   }
 }
