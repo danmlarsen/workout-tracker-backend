@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
 import { UpdateWorkoutExerciseDto } from './dtos/update-workout-exercise.dto';
 import { WorkoutManagementService } from './workout-management.service';
+import { FULL_WORKOUT_INCLUDE } from './const/full-workout-include';
 
 @Injectable()
 export class WorkoutExerciseService {
@@ -43,20 +44,21 @@ export class WorkoutExerciseService {
           }))
         : [{ setNumber: 1 }];
 
-    await this.prismaService.workoutExercise.create({
+    return this.prismaService.workout.update({
+      where: { id: workoutId },
       data: {
-        workoutId,
-        exerciseId: data.exerciseId,
-        exerciseOrder: nextOrder,
-        previousWorkoutExerciseId: previousWorkoutExercise?.id,
-        workoutSets: {
-          create: setsToCreate,
+        workoutExercises: {
+          create: {
+            exerciseId: data.exerciseId,
+            exerciseOrder: nextOrder,
+            previousWorkoutExerciseId: previousWorkoutExercise?.id,
+            workoutSets: {
+              create: setsToCreate,
+            },
+          },
         },
       },
-    });
-
-    return this.workoutService.getWorkout(userId, {
-      id: workout.id,
+      include: FULL_WORKOUT_INCLUDE,
     });
   }
 
@@ -78,13 +80,17 @@ export class WorkoutExerciseService {
       throw new ForbiddenException('Not allowed');
     }
 
-    await this.prismaService.workoutExercise.update({
-      where: { id },
-      data,
-    });
-
-    return this.workoutService.getWorkout(userId, {
-      id: workoutExercise.workoutId,
+    return this.prismaService.workout.update({
+      where: { id: workoutExercise.workoutId },
+      data: {
+        workoutExercises: {
+          update: {
+            where: { id },
+            data,
+          },
+        },
+      },
+      include: FULL_WORKOUT_INCLUDE,
     });
   }
 
@@ -102,12 +108,14 @@ export class WorkoutExerciseService {
       throw new ForbiddenException('Not allowed');
     }
 
-    await this.prismaService.workoutExercise.delete({
-      where: { id },
-    });
-
-    return this.workoutService.getWorkout(userId, {
-      id: workoutExercise.workoutId,
+    return this.prismaService.workout.update({
+      where: { id: workoutExercise.workoutId },
+      data: {
+        workoutExercises: {
+          delete: { id },
+        },
+      },
+      include: FULL_WORKOUT_INCLUDE,
     });
   }
 

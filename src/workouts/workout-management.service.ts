@@ -8,6 +8,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateWorkoutDto } from './dtos/update-workout.dto';
 import { Prisma, WorkoutStatus } from '@prisma/client';
 import { CreateWorkoutDto } from './dtos/create-workout.dto';
+import { FULL_WORKOUT_INCLUDE } from './const/full-workout-include';
 
 @Injectable()
 export class WorkoutManagementService {
@@ -26,25 +27,7 @@ export class WorkoutManagementService {
     const workout = await this.prismaService.workout.findFirst({
       where: whereClause,
       orderBy: { startedAt: 'desc' },
-      include: {
-        workoutExercises: {
-          orderBy: { exerciseOrder: 'asc' },
-          include: {
-            exercise: true,
-            workoutSets: {
-              orderBy: [{ setNumber: 'asc' }, { updatedAt: 'asc' }],
-            },
-            previousWorkoutExercise: {
-              include: {
-                workoutSets: {
-                  where: { completedAt: { not: null } },
-                  orderBy: { setNumber: 'asc' },
-                },
-              },
-            },
-          },
-        },
-      },
+      include: FULL_WORKOUT_INCLUDE,
     });
 
     // Expire active workouts after 12 hours
@@ -79,18 +62,18 @@ export class WorkoutManagementService {
     if (workout.status === 'ACTIVE' && data.activeDuration)
       throw new ForbiddenException('Not allowed');
 
-    await this.prismaService.workout.update({
+    return this.prismaService.workout.update({
       where: { id, userId },
       data,
-    });
-
-    return this.getWorkout(userId, {
-      id: workout.id,
+      include: FULL_WORKOUT_INCLUDE,
     });
   }
 
   async deleteWorkout(id: number, userId: number) {
-    return this.prismaService.workout.delete({ where: { id, userId } });
+    return this.prismaService.workout.delete({
+      where: { id, userId },
+      include: FULL_WORKOUT_INCLUDE,
+    });
   }
 
   async createDraftWorkout(userId: number, data: CreateWorkoutDto) {
@@ -100,7 +83,7 @@ export class WorkoutManagementService {
 
     return this.prismaService.workout.create({
       data: { ...data, userId, status: 'DRAFT' },
-      include: { workoutExercises: true },
+      include: FULL_WORKOUT_INCLUDE,
     });
   }
 
@@ -111,6 +94,7 @@ export class WorkoutManagementService {
 
     return this.prismaService.workout.create({
       data: { userId, status: 'ACTIVE' },
+      include: FULL_WORKOUT_INCLUDE,
     });
   }
 
@@ -145,6 +129,7 @@ export class WorkoutManagementService {
         completedAt: now,
         activeDuration,
       },
+      include: FULL_WORKOUT_INCLUDE,
     });
   }
 
@@ -153,7 +138,10 @@ export class WorkoutManagementService {
 
     if (!workout) throw new ForbiddenException('Not allowed');
 
-    return this.prismaService.workout.delete({ where: { id: workout.id } });
+    return this.prismaService.workout.delete({
+      where: { id: workout.id },
+      include: FULL_WORKOUT_INCLUDE,
+    });
   }
 
   async pauseActiveWorkout(userId: number) {
@@ -165,16 +153,13 @@ export class WorkoutManagementService {
       throw new BadRequestException('Workout is already paused');
     }
 
-    await this.prismaService.workout.update({
+    return this.prismaService.workout.update({
       where: { id: workout.id },
       data: {
         isPaused: true,
         lastPauseStartTime: new Date(),
       },
-    });
-
-    return this.getWorkout(userId, {
-      id: workout.id,
+      include: FULL_WORKOUT_INCLUDE,
     });
   }
 
@@ -194,17 +179,14 @@ export class WorkoutManagementService {
       now.getTime() - lastPauseStartTime.getTime(),
     );
 
-    await this.prismaService.workout.update({
+    return this.prismaService.workout.update({
       where: { id: workout.id },
       data: {
         isPaused: false,
         lastPauseStartTime: null,
         pauseDuration: (workout.pauseDuration || 0) + lastPauseDuration,
       },
-    });
-
-    return this.getWorkout(userId, {
-      id: workout.id,
+      include: FULL_WORKOUT_INCLUDE,
     });
   }
 }

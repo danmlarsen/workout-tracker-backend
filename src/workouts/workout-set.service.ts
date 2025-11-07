@@ -29,21 +29,32 @@ export class WorkoutSetService {
       throw new ForbiddenException('Not allowed');
     }
 
-    const maxSetNumber: { _max: { setNumber: number | null } } =
-      await this.prismaService.workoutSet.aggregate({
-        where: { workoutExerciseId },
-        _max: { setNumber: true },
-      });
-
-    const nextSetNumber = (maxSetNumber._max.setNumber ?? 0) + 1;
-
     return this.prismaService.$transaction(async (tx) => {
-      await tx.workoutSet.create({
-        data: { ...data, workoutExerciseId, setNumber: nextSetNumber },
-      });
+      const maxSetNumber: { _max: { setNumber: number | null } } =
+        await tx.workoutSet.aggregate({
+          where: { workoutExerciseId },
+          _max: { setNumber: true },
+        });
 
-      return tx.workout.findUnique({
+      const nextSetNumber = (maxSetNumber._max.setNumber ?? 0) + 1;
+
+      return tx.workout.update({
         where: { id: workoutExercise.workoutId },
+        data: {
+          workoutExercises: {
+            update: {
+              where: { id: workoutExerciseId },
+              data: {
+                workoutSets: {
+                  create: {
+                    ...data,
+                    setNumber: nextSetNumber,
+                  },
+                },
+              },
+            },
+          },
+        },
         include: FULL_WORKOUT_INCLUDE,
       });
     });
@@ -125,13 +136,25 @@ export class WorkoutSetService {
         updateData.setNumber = 1;
       }
 
-      await tx.workoutSet.update({
-        where: { id },
-        data: { ...updateData },
-      });
-
-      return tx.workout.findUnique({
+      return tx.workout.update({
         where: { id: workoutSet.workoutExercise.workoutId },
+        data: {
+          workoutExercises: {
+            update: {
+              where: { id: workoutSet.workoutExerciseId },
+              data: {
+                workoutSets: {
+                  update: {
+                    where: {
+                      id,
+                    },
+                    data: { ...updateData },
+                  },
+                },
+              },
+            },
+          },
+        },
         include: FULL_WORKOUT_INCLUDE,
       });
     });
@@ -171,12 +194,20 @@ export class WorkoutSetService {
         });
       }
 
-      await tx.workoutSet.delete({
-        where: { id },
-      });
-
-      return tx.workout.findUnique({
+      return tx.workout.update({
         where: { id: workoutSet.workoutExercise.workoutId },
+        data: {
+          workoutExercises: {
+            update: {
+              where: { id: workoutSet.workoutExerciseId },
+              data: {
+                workoutSets: {
+                  delete: { id },
+                },
+              },
+            },
+          },
+        },
         include: FULL_WORKOUT_INCLUDE,
       });
     });
