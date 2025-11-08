@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, WorkoutSet } from '@prisma/client';
+import { calculateOneRepMax } from 'src/common/utils';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
@@ -34,17 +35,16 @@ export class WorkoutQueryService {
         workoutExercises: {
           orderBy: { exerciseOrder: 'asc' },
           include: {
-            exercise: true,
+            exercise: { select: { name: true, category: true } },
             workoutSets: {
-              orderBy: [{ setNumber: 'asc' }, { updatedAt: 'desc' }],
-            },
-            previousWorkoutExercise: {
-              include: {
-                workoutSets: {
-                  where: { completedAt: { not: null } },
-                  orderBy: { setNumber: 'asc' },
-                },
+              select: {
+                type: true,
+                reps: true,
+                weight: true,
+                duration: true,
+                completedAt: true,
               },
+              orderBy: [{ setNumber: 'asc' }, { updatedAt: 'desc' }],
             },
           },
         },
@@ -52,11 +52,75 @@ export class WorkoutQueryService {
     });
 
     const hasMore = workouts.length > WORKOUT_LIMIT;
-    const results = workouts.slice(0, WORKOUT_LIMIT);
-    const nextCursor = hasMore ? results[results.length - 1].id : null;
+    const rawResults = workouts.slice(0, WORKOUT_LIMIT);
+    const nextCursor = hasMore ? rawResults[rawResults.length - 1].id : null;
+
+    const transformedResults = rawResults.map((workout) => {
+      const totalWeight = workout.workoutExercises.reduce(
+        (total, exercise) =>
+          total +
+          exercise.workoutSets.reduce(
+            (setTotal, curSet) =>
+              setTotal +
+              (curSet.completedAt
+                ? (curSet.weight ?? 0) * (curSet.reps ?? 0)
+                : 0),
+            0,
+          ),
+        0,
+      );
+
+      const totalCompletedSets = workout.workoutExercises.reduce(
+        (total, exercise) =>
+          total +
+          exercise.workoutSets?.filter((set) => !!set.completedAt)?.length,
+        0,
+      );
+
+      const compressedWorkoutExercises = workout.workoutExercises.map(
+        (workoutExercise) => {
+          const completedSets = workoutExercise.workoutSets.reduce(
+            (sum, set) => (set.completedAt ? sum + 1 : sum),
+            0,
+          );
+
+          let bestSet: Partial<WorkoutSet | null> = null;
+          if (workoutExercise.exercise.category === 'strength') {
+            bestSet = workoutExercise.workoutSets.reduce((best, current) => {
+              const currentOneRM = calculateOneRepMax(
+                current.weight!,
+                current.reps!,
+              );
+              const bestOneRM = calculateOneRepMax(best.weight!, best.reps!);
+              return currentOneRM > bestOneRM ? current : best;
+            });
+          }
+          if (workoutExercise.exercise.category === 'cardio') {
+            bestSet = workoutExercise.workoutSets.reduce((best, current) =>
+              current.duration! > best.duration! ? current : best,
+            );
+          }
+
+          return {
+            exerciseName: workoutExercise.exercise.name,
+            sets: completedSets,
+            bestSet,
+          };
+        },
+      );
+
+      return {
+        ...workout,
+        totalWeight,
+        totalCompletedSets,
+        workoutExercises: compressedWorkoutExercises.filter(
+          (we) => we.sets > 0,
+        ),
+      };
+    });
 
     return {
-      results,
+      results: transformedResults,
       nextCursor,
     };
   }
