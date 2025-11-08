@@ -10,6 +10,9 @@ COPY . .
 
 RUN npx prisma generate
 
+# Compile seed script for production
+RUN npx tsc prisma/seed.ts --outDir prisma --resolveJsonModule --esModuleInterop --target ES2022 --skipLibCheck --moduleResolution node --module commonjs
+
 RUN pnpm run build
 
 FROM node:22-alpine AS production
@@ -32,4 +35,4 @@ RUN npx prisma generate
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed && node dist/main"]
+CMD ["sh", "-c", "npx prisma migrate deploy && node prisma/seed.js && node dist/main"]
