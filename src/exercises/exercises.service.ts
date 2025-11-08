@@ -22,12 +22,12 @@ export class ExercisesService {
       };
     },
   ) {
-    const EXERCISE_LIMIT = 10;
+    const EXERCISE_LIMIT = 20;
 
     const exercises = await this.prismaService.exercise.findMany({
       where: {
         AND: [
-          { OR: [{ userId }, { userId: null }] },
+          { OR: [{ userId }, { userId: -1 }] },
           // Name filter - case insensitive partial match
           ...(options?.filters?.name
             ? [
@@ -63,6 +63,7 @@ export class ExercisesService {
       },
       take: EXERCISE_LIMIT + 1,
       ...(options?.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
+      orderBy: { name: 'asc' },
       include: {
         _count: {
           select: {
@@ -96,7 +97,7 @@ export class ExercisesService {
   async findExerciseById(userId: number, exerciseId: number) {
     const exercise = await this.prismaService.exercise.findFirst({
       where: {
-        AND: [{ id: exerciseId }, { OR: [{ userId }, { userId: null }] }],
+        AND: [{ id: exerciseId }, { OR: [{ userId }, { userId: -1 }] }],
       },
       include: {
         _count: {
