@@ -215,15 +215,15 @@ describe('AuthService', () => {
       expect(result).toEqual(mockUser);
     });
 
-    it('should return null when user is not found', async () => {
+    it('should throw UnauthorizedException when user is not found', async () => {
       const loginDto = {
         email: 'nonexistent@test.com',
         password: 'password',
       };
 
-      const result = await service.validateUser(loginDto);
-
-      expect(result).toBeNull();
+      await expect(service.validateUser(loginDto)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('should throw UnauthorizedException when password is incorrect', async () => {
