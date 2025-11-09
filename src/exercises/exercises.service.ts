@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateExerciseDto } from './dtos/create-exercise.dto';
 import { UpdateExerciseDto } from './dtos/update-exercise.dto';
+import { SYSTEM_USER_ID } from 'src/common/constants';
 
 @Injectable()
 export class ExercisesService {
@@ -27,7 +28,7 @@ export class ExercisesService {
     const exercises = await this.prismaService.exercise.findMany({
       where: {
         AND: [
-          { OR: [{ userId }, { userId: -1 }] },
+          { OR: [{ userId }, { userId: SYSTEM_USER_ID }] },
           // Name filter - case insensitive partial match
           ...(options?.filters?.name
             ? [
@@ -97,7 +98,10 @@ export class ExercisesService {
   async findExerciseById(userId: number, exerciseId: number) {
     const exercise = await this.prismaService.exercise.findFirst({
       where: {
-        AND: [{ id: exerciseId }, { OR: [{ userId }, { userId: -1 }] }],
+        AND: [
+          { id: exerciseId },
+          { OR: [{ userId }, { userId: SYSTEM_USER_ID }] },
+        ],
       },
       include: {
         _count: {
