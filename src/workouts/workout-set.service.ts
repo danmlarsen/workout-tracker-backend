@@ -3,15 +3,11 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
 import { UpdateWorkoutSetDto } from './dtos/update-workout-set.dto';
 import { WorkoutSetType } from './types/workout.types';
-import { WorkoutManagementService } from './workout-management.service';
 import { FULL_WORKOUT_INCLUDE } from './const/full-workout-include';
 
 @Injectable()
 export class WorkoutSetService {
-  constructor(
-    private readonly prismaService: PrismaService,
-    private readonly workoutService: WorkoutManagementService,
-  ) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   async createWorkoutSet(
     workoutExerciseId: number,
@@ -78,16 +74,8 @@ export class WorkoutSetService {
       throw new ForbiddenException('Not allowed');
     }
 
-    const updateData: { [key: string]: any } = { ...data };
-    if (data.completed) {
-      updateData.completedAt = new Date();
-    }
-    if (data.completed === false) {
-      updateData.completedAt = null;
-    }
-    delete updateData.completed;
-
     return this.prismaService.$transaction(async (tx) => {
+      let newSetNumber = workoutSet.setNumber;
       // Converting normal set to warmup
       if (
         workoutSet.type !== WorkoutSetType.WARMUP.toString() &&
@@ -108,8 +96,8 @@ export class WorkoutSetService {
           },
         });
 
-        updateData.type = WorkoutSetType.WARMUP;
-        updateData.setNumber = 0;
+        data.type = WorkoutSetType.WARMUP;
+        newSetNumber = 0;
       }
 
       // Converting warmup set to normal
@@ -133,7 +121,7 @@ export class WorkoutSetService {
           },
         });
 
-        updateData.setNumber = 1;
+        newSetNumber = 1;
       }
 
       return tx.workout.update({
@@ -148,7 +136,7 @@ export class WorkoutSetService {
                     where: {
                       id,
                     },
-                    data: { ...updateData },
+                    data: { ...data, setNumber: newSetNumber },
                   },
                 },
               },

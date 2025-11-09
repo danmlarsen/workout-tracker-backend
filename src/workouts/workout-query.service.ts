@@ -42,7 +42,7 @@ export class WorkoutQueryService {
                 reps: true,
                 weight: true,
                 duration: true,
-                completedAt: true,
+                completed: true,
               },
               orderBy: [{ setNumber: 'asc' }, { updatedAt: 'desc' }],
             },
@@ -62,7 +62,7 @@ export class WorkoutQueryService {
           exercise.workoutSets.reduce(
             (setTotal, curSet) =>
               setTotal +
-              (curSet.completedAt
+              (curSet.completed
                 ? (curSet.weight ?? 0) * (curSet.reps ?? 0)
                 : 0),
             0,
@@ -73,14 +73,14 @@ export class WorkoutQueryService {
       const totalCompletedSets = workout.workoutExercises.reduce(
         (total, exercise) =>
           total +
-          exercise.workoutSets?.filter((set) => !!set.completedAt)?.length,
+          exercise.workoutSets?.filter((set) => !!set.completed)?.length,
         0,
       );
 
       const compressedWorkoutExercises = workout.workoutExercises.map(
         (workoutExercise) => {
           const completedSets = workoutExercise.workoutSets.reduce(
-            (sum, set) => (set.completedAt ? sum + 1 : sum),
+            (sum, set) => (set.completed ? sum + 1 : sum),
             0,
           );
 

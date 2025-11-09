@@ -182,7 +182,7 @@ export class ExercisesService {
           where: { exerciseId },
           include: {
             workoutSets: {
-              where: { completedAt: { not: null } },
+              where: { completed: true },
               orderBy: { setNumber: 'asc' },
             },
           },

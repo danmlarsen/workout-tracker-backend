@@ -112,9 +112,9 @@ model WorkoutExercise {
   updatedAt                 DateTime          @updatedAt
   notes                     String?
   workoutSets               WorkoutSet[]
-  previousWorkoutExercise   WorkoutExercise?  @relation("WorkoutExerciseTemplate", fields: [previousWorkoutExerciseId], references: [id])
-  previousWorkoutExerciseId Int?
-  templatedWorkoutExercises WorkoutExercise[] @relation("WorkoutExerciseTemplate")
+  previousWorkoutExercise   WorkoutExercise?  @relation("PreviousWorkoutExercise", fields: [previousWorkoutExerciseId], references: [id])
+  previousWorkoutExerciseId Int?              @unique
+  nextWorkoutExercise       WorkoutExercise?  @relation("PreviousWorkoutExercise")
 }
 
 model WorkoutSet {
@@ -124,7 +124,7 @@ model WorkoutSet {
   setNumber         Int
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
-  completedAt       DateTime?
+  completed         Boolean          @default(false)
   notes             String?
   type              String           @default("normal")
   reps              Int?

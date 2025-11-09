@@ -2,15 +2,11 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
 import { UpdateWorkoutExerciseDto } from './dtos/update-workout-exercise.dto';
-import { WorkoutManagementService } from './workout-management.service';
 import { FULL_WORKOUT_INCLUDE } from './const/full-workout-include';
 
 @Injectable()
 export class WorkoutExerciseService {
-  constructor(
-    private readonly prismaService: PrismaService,
-    private readonly workoutService: WorkoutManagementService,
-  ) {}
+  constructor(private readonly prismaService: PrismaService) {}
 
   async createWorkoutExercise(
     userId: number,
@@ -152,7 +148,7 @@ export class WorkoutExerciseService {
       },
       include: {
         workoutSets: {
-          where: { completedAt: { not: null } },
+          where: { completed: true },
           orderBy: { setNumber: 'asc' },
         },
       },
