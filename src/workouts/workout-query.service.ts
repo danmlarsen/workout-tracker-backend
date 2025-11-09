@@ -51,9 +51,11 @@ export class WorkoutQueryService {
       },
     });
 
-    const hasMore = workouts.length > WORKOUT_LIMIT;
+    const hasNextPage = workouts.length > WORKOUT_LIMIT;
     const rawResults = workouts.slice(0, WORKOUT_LIMIT);
-    const nextCursor = hasMore ? rawResults[rawResults.length - 1].id : null;
+    const nextCursor = hasNextPage
+      ? rawResults[rawResults.length - 1].id
+      : null;
 
     const transformedResults = rawResults.map((workout) => {
       const totalWeight = workout.workoutExercises.reduce(
@@ -120,8 +122,12 @@ export class WorkoutQueryService {
     });
 
     return {
-      results: transformedResults,
-      nextCursor,
+      success: true,
+      meta: {
+        hasNextPage,
+        nextCursor,
+      },
+      data: transformedResults,
     };
   }
 

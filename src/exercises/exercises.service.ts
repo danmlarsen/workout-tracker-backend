@@ -85,13 +85,17 @@ export class ExercisesService {
       timesUsed: _count.workoutExercises,
     }));
 
-    const hasMore = exercisesWithTimesUsed.length > EXERCISE_LIMIT;
+    const hasNextPage = exercisesWithTimesUsed.length > EXERCISE_LIMIT;
     const results = exercisesWithTimesUsed.slice(0, EXERCISE_LIMIT);
-    const nextCursor = hasMore ? results[results.length - 1].id : null;
+    const nextCursor = hasNextPage ? results[results.length - 1].id : null;
 
     return {
-      results,
-      nextCursor,
+      success: true,
+      meta: {
+        hasNextPage,
+        nextCursor,
+      },
+      data: results,
     };
   }
 
@@ -193,10 +197,12 @@ export class ExercisesService {
       },
     });
 
-    const hasMore = workouts.length > WORKOUT_LIMIT;
+    const hasNextPage = workouts.length > WORKOUT_LIMIT;
     const results = workouts.slice(0, WORKOUT_LIMIT);
     const nextCursor =
-      hasMore && results.length > 0 ? results[results.length - 1]?.id : null;
+      hasNextPage && results.length > 0
+        ? results[results.length - 1]?.id
+        : null;
 
     const flattenedWorkouts = results.map(
       ({ workoutExercises, ...workout }) => ({
@@ -206,8 +212,12 @@ export class ExercisesService {
     );
 
     return {
-      results: flattenedWorkouts,
-      nextCursor,
+      success: true,
+      meta: {
+        hasNextPage,
+        nextCursor,
+      },
+      data: flattenedWorkouts,
     };
   }
 }
