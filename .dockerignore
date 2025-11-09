@@ -15,7 +15,17 @@ build
 *.log
 .DS_Store
 Dockerfile
+Dockerfile.prod
 .dockerignore
 docker-compose*.yml
 scripts
 *.md
+.github
+*.spec.ts
+*.test.ts
+test/
+.eslintrc*
+.prettierrc*
+.turbo/
+.cache/
+*.tsbuildinfo
