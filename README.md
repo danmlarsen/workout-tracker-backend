@@ -1,98 +1,107 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# NextLift Workout Tracker - Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## About
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+NextLift is a workout tracking application that helps users log exercises, track personal records, and monitor their progress over time. This REST API handles user authentication, workout management, exercise libraries, and personal record tracking.
 
-## Description
+REST API backend for the NextLift workout tracking application built with NestJS and PostgreSQL/Prisma.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Tech Stack
 
-## Project setup
+- **Framework**: NestJS (Node.js)
+- **Language**: TypeScript
+- **Database**: PostgreSQL
+- **ORM**: Prisma
+- **Authentication**: JWT + Passport.js (Local & JWT strategies)
+- **Validation**: class-validator + class-transformer
+- **Logging**: Pino
+- **Email**: SendGrid
+- **Package Manager**: pnpm
+
+## Quick Start
+
+### Using Docker (Recommended)
 
 ```bash
-$ pnpm install
+# Start database + API + Prisma Studio
+docker compose up
+
+# The API will be available at http://localhost:3000
+# Prisma Studio will be available at http://localhost:5555
 ```
 
-## Compile and run the project
+### Local Development
 
 ```bash
-# development
-$ pnpm run start
+# Install dependencies
+pnpm install
 
-# watch mode
-$ pnpm run start:dev
+# Set up environment variables
+cp .env.example .env
 
-# production mode
-$ pnpm run start:prod
+# Run database migrations
+npx prisma migrate deploy
+
+# Seed the database
+npx prisma db seed
+
+# Start development server
+pnpm start:dev
 ```
 
-## Run tests
+## Development Scripts
 
 ```bash
-# unit tests
-$ pnpm run test
+# Development
+pnpm start:dev          # Start with hot reload
+pnpm start:debug        # Start with debugger
 
-# e2e tests
-$ pnpm run test:e2e
+# Database
+npx prisma migrate dev  # Create and apply migration
+npx prisma generate     # Generate Prisma client
+npx prisma studio       # Open Prisma Studio
+npx prisma db seed      # Seed database
 
-# test coverage
-$ pnpm run test:cov
+# Testing
+pnpm test              # Unit tests
+pnpm test:e2e          # End-to-end tests
+pnpm test:cov          # Test coverage
+
+# Build & Production
+pnpm build             # Build for production
+pnpm start:prod        # Start production server
 ```
 
-## Deployment
+## Project Structure
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+- `src/auth/` - Authentication (JWT, local strategy)
+- `src/users/` - User management
+- `src/workouts/` - Workout CRUD operations
+- `src/exercises/` - Exercise management
+- `src/email/` - Email service integration
+- `src/prisma/` - Database service
+- `src/common/` - Shared utilities, guards, decorators
+- `prisma/` - Database schema and migrations
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Features
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+- **JWT Authentication** with refresh tokens (HTTP-only cookies)
+- **Email confirmation** and password reset
+- **Workout tracking** with exercises and sets
+- **Personal records** tracking
+- **Exercise library** with seeded data
+- **Input validation** and sanitization
+- **Structured logging** with Pino
+- **Comprehensive testing** setup
+
+## Environment Variables
+
+Create a `.env` file with:
+
+```env
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres"
+JWT_SECRET="your-jwt-secret"
+SENDGRID_API_KEY="your-sendgrid-key"
+SENDGRID_VERIFIED_SENDER_EMAIL="your-verified@email.com"
+FRONTEND_URL="http://localhost:3000"
 ```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
