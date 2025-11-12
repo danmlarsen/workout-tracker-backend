@@ -6,7 +6,7 @@ export const FULL_WORKOUT_INCLUDE: Prisma.WorkoutInclude = {
     include: {
       exercise: true,
       workoutSets: {
-        orderBy: [{ setNumber: 'asc' }, { updatedAt: 'asc' }],
+        orderBy: [{ setNumber: 'asc' }, { createdAt: 'asc' }],
       },
       previousWorkoutExercise: {
         include: {

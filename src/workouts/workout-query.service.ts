@@ -44,7 +44,7 @@ export class WorkoutQueryService {
                 duration: true,
                 completed: true,
               },
-              orderBy: [{ setNumber: 'asc' }, { updatedAt: 'desc' }],
+              orderBy: [{ setNumber: 'asc' }, { createdAt: 'asc' }],
             },
           },
         },
