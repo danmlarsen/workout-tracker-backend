@@ -30,6 +30,7 @@ export class WorkoutExerciseService {
     const previousWorkoutExercise = await this.findPreviousWorkoutExercise(
       userId,
       data.exerciseId,
+      workout.startedAt,
     );
 
     // Create sets based on previous structure or default to single set
@@ -137,6 +138,7 @@ export class WorkoutExerciseService {
   private async findPreviousWorkoutExercise(
     userId: number,
     exerciseId: number,
+    currentWorkoutStartedAt: Date,
   ): Promise<{ id: number; workoutSets: { setNumber: number }[] } | null> {
     return this.prismaService.workoutExercise.findFirst({
       where: {
@@ -144,6 +146,9 @@ export class WorkoutExerciseService {
         workout: {
           userId,
           status: 'COMPLETED',
+          startedAt: {
+            lt: currentWorkoutStartedAt,
+          },
         },
       },
       include: {

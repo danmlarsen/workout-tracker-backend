@@ -113,8 +113,8 @@ model WorkoutExercise {
   notes                     String?
   workoutSets               WorkoutSet[]
   previousWorkoutExercise   WorkoutExercise?  @relation("PreviousWorkoutExercise", fields: [previousWorkoutExerciseId], references: [id])
-  previousWorkoutExerciseId Int?              @unique
-  nextWorkoutExercise       WorkoutExercise?  @relation("PreviousWorkoutExercise")
+  previousWorkoutExerciseId Int?              
+  nextWorkoutExercise       WorkoutExercise[]  @relation("PreviousWorkoutExercise")
 }
 
 model WorkoutSet {
