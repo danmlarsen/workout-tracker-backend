@@ -9,6 +9,7 @@ datasource db {
 
 model User {
   id                      Int                      @id @default(autoincrement())
+  userType                UserType                 @default(REGULAR)
   email                   String                   @unique
   password                String
   createdAt               DateTime                 @default(now())
@@ -17,6 +18,7 @@ model User {
   refreshToken            String?
   isEmailConfirmed        Boolean                  @default(false)
   isActive                Boolean                  @default(true)
+  demoExpiresAt           DateTime?
   workouts                Workout[]
   exercises               Exercise[]
   personalRecords         PersonalRecord[]
@@ -113,8 +115,8 @@ model WorkoutExercise {
   notes                     String?
   workoutSets               WorkoutSet[]
   previousWorkoutExercise   WorkoutExercise?  @relation("PreviousWorkoutExercise", fields: [previousWorkoutExerciseId], references: [id])
-  previousWorkoutExerciseId Int?              
-  nextWorkoutExercise       WorkoutExercise[]  @relation("PreviousWorkoutExercise")
+  previousWorkoutExerciseId Int?
+  nextWorkoutExercise       WorkoutExercise[] @relation("PreviousWorkoutExercise")
 }
 
 model WorkoutSet {
@@ -145,6 +147,24 @@ model PersonalRecord {
   workoutSetId Int
 
   @@unique([userId, exerciseId, recordType])
+}
+
+model DemoAccessToken {
+  id          Int       @id @default(autoincrement())
+  token       String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  usageCount  Int       @default(0)
+  maxUsages   Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  expiresAt   DateTime?
+}
+
+enum UserType {
+  REGULAR
+  DEMO
+  SYSTEM
 }
 
 enum WorkoutStatus {

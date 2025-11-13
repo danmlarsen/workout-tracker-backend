@@ -11,6 +11,7 @@ async function main() {
       where: { id: -1 },
       create: {
         id: -1,
+        userType: 'SYSTEM',
         email: 'system@nextlift.app',
         password: 'invalidhashjustforseeding',
         isEmailConfirmed: true,

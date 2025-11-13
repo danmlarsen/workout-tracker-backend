@@ -26,12 +26,15 @@ import { ClientInfo } from 'src/common/decorators/client-info.decorator';
 import { ChangePasswordDto } from './dtos/change-password.dto';
 import { plainToInstance } from 'class-transformer';
 import { UserResponseDto } from './dtos/user-response.dto';
+import { CreateDemoSessionDto } from './dtos/create-demo-session.dto';
+import { DemoService } from './demo.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(
-    private configService: ConfigService,
-    private authService: AuthService,
+    private readonly configService: ConfigService,
+    private readonly authService: AuthService,
+    private readonly demoService: DemoService,
   ) {}
 
   @Post('register')
@@ -152,5 +155,24 @@ export class AuthController {
     @Body() body: ResetPasswordDto,
   ) {
     return this.authService.resetPassword(token, body);
+  }
+
+  @Post('demo/create-session')
+  async createDemoSession(
+    @Body() body: CreateDemoSessionDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { access_token, refresh_token, ...loginData } =
+      await this.demoService.createDemoSession(body.token);
+
+    // Set refresh token cookie (shorter duration for demo)
+    res.cookie(REFRESH_TOKEN_COOKIE, refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: ms('2h'), // 2 hours for demo sessions
+    });
+
+    return { access_token, ...loginData };
   }
 }
