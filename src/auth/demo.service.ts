@@ -90,8 +90,8 @@ export class DemoService {
     const workoutDates: Date[] = [];
 
     while (dates.size < count) {
-      // Random number of days between -30 and +30
-      const daysOffset = Math.floor(Math.random() * 61) - 30;
+      // Random number of days between 20 and 0
+      const daysOffset = Math.floor(Math.random() * -20);
       const workoutDate = new Date(now);
       workoutDate.setDate(workoutDate.getDate() + daysOffset);
 
