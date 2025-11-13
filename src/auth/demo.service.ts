@@ -2,7 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthService } from './auth.service';
 import crypto from 'crypto';
-import { Exercise, Prisma } from '@prisma/client';
+import { Exercise, Prisma, UserType } from '@prisma/client';
 
 @Injectable()
 export class DemoService {
@@ -263,6 +263,35 @@ export class DemoService {
     }
 
     return setsData;
+  }
+
+  // Cleanup job to remove expired demo users
+  // @Cron('0 */15 * * * *') // Every 15 minutes
+  async cleanupExpiredDemoUsers() {
+    const whereClause = {
+      userType: UserType.DEMO,
+      demoExpiresAt: { lt: new Date() },
+    };
+
+    const usersToDelete = await this.prismaService.user.findMany({
+      where: whereClause,
+    });
+
+    if (usersToDelete.length > 0) {
+      await this.prismaService.$transaction(async (tx) => {
+        await tx.deletedUser.createMany({
+          data: usersToDelete.map((users) => ({
+            originalUserId: users.id,
+            email: users.email,
+            createdAt: users.createdAt,
+          })),
+        });
+
+        return tx.user.deleteMany({
+          where: whereClause,
+        });
+      });
+    }
   }
 
   private getRandomWorkoutNote(): string {
