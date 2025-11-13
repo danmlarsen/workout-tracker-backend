@@ -193,7 +193,7 @@ export class ExercisesService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        startedAt: 'desc',
       },
     });
 
