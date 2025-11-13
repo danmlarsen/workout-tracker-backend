@@ -2,7 +2,6 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWorkoutSetDto } from './dtos/create-workout-set.dto';
 import { UpdateWorkoutSetDto } from './dtos/update-workout-set.dto';
-import { WorkoutSetType } from './types/workout.types';
 import { FULL_WORKOUT_INCLUDE } from './const/full-workout-include';
 
 @Injectable()
@@ -74,77 +73,26 @@ export class WorkoutSetService {
       throw new ForbiddenException('Not allowed');
     }
 
-    return this.prismaService.$transaction(async (tx) => {
-      let newSetNumber = workoutSet.setNumber;
-      // Converting normal set to warmup
-      if (
-        workoutSet.type !== WorkoutSetType.WARMUP.toString() &&
-        data.type === WorkoutSetType.WARMUP
-      ) {
-        // Shift down all sets that were after this one
-        await tx.workoutSet.updateMany({
-          where: {
-            workoutExerciseId: workoutSet.workoutExerciseId,
-            setNumber: {
-              gt: workoutSet.setNumber,
-            },
-          },
-          data: {
-            setNumber: {
-              decrement: 1,
-            },
-          },
-        });
-
-        data.type = WorkoutSetType.WARMUP;
-        newSetNumber = 0;
-      }
-
-      // Converting warmup set to normal
-      if (
-        workoutSet.type === WorkoutSetType.WARMUP.toString() &&
-        !!data.type &&
-        data.type !== WorkoutSetType.WARMUP
-      ) {
-        // Shift up all normal sets to make room at position 1
-        await tx.workoutSet.updateMany({
-          where: {
-            workoutExerciseId: workoutSet.workoutExerciseId,
-            setNumber: {
-              gte: 1,
-            },
-          },
-          data: {
-            setNumber: {
-              increment: 1,
-            },
-          },
-        });
-
-        newSetNumber = 1;
-      }
-
-      return tx.workout.update({
-        where: { id: workoutSet.workoutExercise.workoutId },
-        data: {
-          workoutExercises: {
-            update: {
-              where: { id: workoutSet.workoutExerciseId },
-              data: {
-                workoutSets: {
-                  update: {
-                    where: {
-                      id,
-                    },
-                    data: { ...data, setNumber: newSetNumber },
+    return this.prismaService.workout.update({
+      where: { id: workoutSet.workoutExercise.workoutId },
+      data: {
+        workoutExercises: {
+          update: {
+            where: { id: workoutSet.workoutExerciseId },
+            data: {
+              workoutSets: {
+                update: {
+                  where: {
+                    id,
                   },
+                  data,
                 },
               },
             },
           },
         },
-        include: FULL_WORKOUT_INCLUDE,
-      });
+      },
+      include: FULL_WORKOUT_INCLUDE,
     });
   }
 
@@ -163,24 +111,19 @@ export class WorkoutSetService {
     }
 
     return this.prismaService.$transaction(async (tx) => {
-      if (
-        workoutSet.setNumber > 0 &&
-        workoutSet.type !== WorkoutSetType.WARMUP.toString()
-      ) {
-        await tx.workoutSet.updateMany({
-          where: {
-            workoutExerciseId: workoutSet.workoutExerciseId,
-            setNumber: {
-              gt: workoutSet.setNumber,
-            },
+      await tx.workoutSet.updateMany({
+        where: {
+          workoutExerciseId: workoutSet.workoutExerciseId,
+          setNumber: {
+            gt: workoutSet.setNumber,
           },
-          data: {
-            setNumber: {
-              decrement: 1,
-            },
+        },
+        data: {
+          setNumber: {
+            decrement: 1,
           },
-        });
-      }
+        },
+      });
 
       return tx.workout.update({
         where: { id: workoutSet.workoutExercise.workoutId },
