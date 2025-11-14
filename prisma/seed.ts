@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserType } from '@prisma/client';
 import exercises from './data/exercises.json';
 
 const prisma = new PrismaClient();
@@ -11,7 +11,7 @@ async function main() {
       where: { id: -1 },
       create: {
         id: -1,
-        userType: 'SYSTEM',
+        userType: UserType.SYSTEM,
         email: 'system@nextlift.app',
         password: 'invalidhashjustforseeding',
         isEmailConfirmed: true,
