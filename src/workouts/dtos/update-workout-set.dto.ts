@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsPositive,
   Max,
+  Min,
 } from 'class-validator';
 import { WorkoutSetType } from '../types/workout.types';
 
@@ -19,7 +20,7 @@ export class UpdateWorkoutSetDto {
 
   @IsOptional()
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   @Max(10000)
   weight: number;
 
