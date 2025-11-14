@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { DemoService } from './demo.service';
 import { AuthService } from './auth.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
 
 describe('DemoService', () => {
   let service: DemoService;
@@ -12,6 +13,7 @@ describe('DemoService', () => {
         DemoService,
         { provide: PrismaService, useValue: {} },
         { provide: AuthService, useValue: {} },
+        { provide: ConfigService, useValue: {} },
       ],
     }).compile();
 

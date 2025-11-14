@@ -160,10 +160,14 @@ export class AuthController {
   @Post('demo/create-session')
   async createDemoSession(
     @Body() body: CreateDemoSessionDto,
+    @ClientInfo() clientInfo: ClientInfo,
     @Res({ passthrough: true }) res: Response,
   ) {
     const { access_token, refresh_token, ...loginData } =
-      await this.demoService.createDemoSession(body.token);
+      await this.demoService.createDemoSession(
+        body.captchaToken,
+        clientInfo.ip,
+      );
 
     // Set refresh token cookie (shorter duration for demo)
     res.cookie(REFRESH_TOKEN_COOKIE, refresh_token, {

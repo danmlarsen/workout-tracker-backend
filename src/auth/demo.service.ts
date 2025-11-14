@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthService } from './auth.service';
 import crypto from 'crypto';
@@ -11,36 +11,12 @@ export class DemoService {
     private readonly authService: AuthService,
   ) {}
 
-  async validateDemoToken(token: string) {
-    const demoToken = await this.prismaService.demoAccessToken.findUnique({
-      where: { token },
-    });
+  async createDemoSession(captchaToken: string, ipAddress: string) {
+    await this.authService.verifyCaptcha(captchaToken);
 
-    if (!demoToken || !demoToken.isActive) {
-      throw new UnauthorizedException('Invalid demo access token');
-    }
-
-    if (demoToken.expiresAt && demoToken.expiresAt < new Date()) {
-      throw new UnauthorizedException('Demo access token has expired');
-    }
-
-    if (demoToken.maxUsages && demoToken.usageCount >= demoToken.maxUsages) {
-      throw new UnauthorizedException('Demo access token usage limit reached');
-    }
-
-    await this.prismaService.demoAccessToken.update({
-      where: { id: demoToken.id },
-      data: { usageCount: { increment: 1 } },
-    });
-
-    return demoToken;
-  }
-
-  async createDemoSession(token: string) {
-    await this.validateDemoToken(token);
+    await this.checkIpRateLimit(ipAddress);
 
     const demoUser = await this.createDemoUser();
-
     return this.authService.login(demoUser);
   }
 
@@ -292,6 +268,56 @@ export class DemoService {
         });
       });
     }
+  }
+
+  private async checkIpRateLimit(ipAddress: string) {
+    const now = new Date();
+    const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+    // Create a simple IP tracking record
+    await this.prismaService.demoIpTracking.create({
+      data: {
+        ipAddress,
+        createdAt: now,
+      },
+    });
+
+    // Check daily limit (10 demo sessions per day per IP)
+    const dailyCount = await this.prismaService.demoIpTracking.count({
+      where: {
+        ipAddress,
+        createdAt: { gte: oneDayAgo },
+      },
+    });
+
+    if (dailyCount > 10) {
+      throw new BadRequestException(
+        'Daily demo limit reached for this IP address',
+      );
+    }
+
+    // Check hourly limit (3 demo sessions per hour per IP)
+    const hourlyCount = await this.prismaService.demoIpTracking.count({
+      where: {
+        ipAddress,
+        createdAt: { gte: oneHourAgo },
+      },
+    });
+
+    if (hourlyCount > 3) {
+      throw new BadRequestException(
+        'Hourly demo limit reached. Please try again later.',
+      );
+    }
+
+    // Cleanup old tracking records (older than 7 days)
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    await this.prismaService.demoIpTracking.deleteMany({
+      where: {
+        createdAt: { lt: sevenDaysAgo },
+      },
+    });
   }
 
   private getRandomWorkoutNote(): string {

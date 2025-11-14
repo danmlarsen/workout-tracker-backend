@@ -149,16 +149,12 @@ model PersonalRecord {
   @@unique([userId, exerciseId, recordType])
 }
 
-model DemoAccessToken {
-  id          Int       @id @default(autoincrement())
-  token       String    @unique
-  description String?
-  isActive    Boolean   @default(true)
-  usageCount  Int       @default(0)
-  maxUsages   Int?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  expiresAt   DateTime?
+model DemoIpTracking {
+  id        Int      @id @default(autoincrement())
+  ipAddress String
+  createdAt DateTime @default(now())
+  
+  @@index([ipAddress, createdAt])
 }
 
 enum UserType {

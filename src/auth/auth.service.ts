@@ -18,6 +18,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { ResetPasswordDto } from './dtos/reset-password.dto';
 import { ResendConfirmationDto } from './dtos/resend-confirmation.dto';
 import { RequestPasswordResetDto } from './dtos/request-password-reset.dto';
+import { RecaptchaResponse } from 'src/common/types/recaptcha-response';
 
 @Injectable()
 export class AuthService {
@@ -359,6 +360,50 @@ export class AuthService {
       success: true,
       message: 'Password reset successfully',
     };
+  }
+
+  async verifyCaptcha(token: string) {
+    const secretKey = this.configService.get<string>('RECAPTCHA_SECRET');
+
+    if (!secretKey) {
+      throw new Error('RECAPTCHA_SECRET not configured');
+    }
+
+    try {
+      const response = await fetch(
+        'https://www.google.com/recaptcha/api/siteverify',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: `secret=${secretKey}&response=${token}`,
+        },
+      );
+
+      const result = (await response.json()) as RecaptchaResponse;
+
+      if (!result.success) {
+        throw new UnauthorizedException('CAPTCHA verification failed');
+      }
+
+      // For reCAPTCHA v3, check the score (0.0 = bot, 1.0 = human)
+      if (result.score !== undefined && result.score < 0.5) {
+        throw new UnauthorizedException(
+          'CAPTCHA score too low - suspicious activity detected',
+        );
+      }
+
+      // Optional: Check action matches what you sent
+      if (result.action && result.action !== 'demo_login') {
+        throw new UnauthorizedException('CAPTCHA action mismatch');
+      }
+
+      return result;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('CAPTCHA verification failed');
+    }
   }
 
   private hashPassword(password: string) {
