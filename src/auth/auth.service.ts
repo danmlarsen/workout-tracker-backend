@@ -191,7 +191,7 @@ export class AuthService {
     const user = await this.usersService.getUser({
       email: data.email,
     });
-    if (!user) {
+    if (!user || user.userType === 'SYSTEM' || user.userType === 'DEMO') {
       throw new UnauthorizedException('Invalid email and/or password');
     }
 
