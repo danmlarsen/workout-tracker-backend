@@ -1,12 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to drop the `DemoAccessToken` table. If the table is not empty, all the data it contains will be lost.
-
-*/
--- DropTable
-DROP TABLE "public"."DemoAccessToken";
-
 -- CreateTable
 CREATE TABLE "public"."DemoIpTracking" (
     "id" SERIAL NOT NULL,
