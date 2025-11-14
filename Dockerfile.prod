@@ -12,9 +12,6 @@ RUN npx prisma generate
 
 RUN pnpm run build
 
-# Compile seed script for production
-RUN npx tsc prisma/seed.ts --outDir prisma --resolveJsonModule --esModuleInterop --target ES2022 --skipLibCheck --moduleResolution node --module commonjs
-
 FROM node:22-alpine AS production
 
 WORKDIR /app
@@ -26,9 +23,10 @@ RUN npm install -g pnpm && \
     pnpm install --frozen-lockfile --prod && \
     pnpm add prisma
 
-# Copy built application and Prisma schema
-COPY --from=builder /app/dist ./dist
+# Copy built application, Prisma schema and compiled seed.js
+COPY --from=builder /app/dist/src ./dist
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/dist/prisma/seed.js ./prisma
 
 # Generate Prisma client in production (ensures compatibility)
 RUN npx prisma generate
