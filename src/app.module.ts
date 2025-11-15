@@ -19,6 +19,10 @@ import { HealthModule } from './health/health.module';
           process.env.NODE_ENV !== 'production'
             ? { target: 'pino-pretty', options: { colorize: true } }
             : undefined,
+        redact: ['req.headers.authorization', 'req.body.password'],
+        autoLogging: {
+          ignore: (req) => req.url === '/health', // Don't log health checks
+        },
       },
     }),
     PrismaModule,
