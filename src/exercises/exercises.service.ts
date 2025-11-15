@@ -217,7 +217,10 @@ export class ExercisesService {
         where: { AND: [{ id: exerciseId }, { userId }] },
       });
 
-      if (!exercise) throw new NotFoundException('exercise not found');
+      if (!exercise) {
+        this.logger.warn(`No exercise found to update`, { userId, exerciseId });
+        throw new NotFoundException('exercise not found');
+      }
 
       return await this.prismaService.exercise.update({
         where: { id: exerciseId },
@@ -244,7 +247,10 @@ export class ExercisesService {
         where: { AND: [{ id: exerciseId }, { userId }] },
       });
 
-      if (!exercise) throw new NotFoundException('Exercise not found');
+      if (!exercise) {
+        this.logger.warn(`No exercise found to delete`, { userId, exerciseId });
+        throw new NotFoundException('Exercise not found');
+      }
 
       return await this.prismaService.exercise.delete({
         where: { id: exerciseId },

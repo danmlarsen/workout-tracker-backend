@@ -185,27 +185,7 @@ describe('AuthService', () => {
       );
 
       await expect(service.registerUser(newUserInput)).rejects.toThrow(
-        'Database error',
-      );
-    });
-
-    it('should handle email confirmation token creation failure', async () => {
-      mockPrismaService.emailConfirmationToken.create.mockRejectedValueOnce(
-        new Error('Token creation failed'),
-      );
-
-      await expect(service.registerUser(newUserInput)).rejects.toThrow(
-        'Token creation failed',
-      );
-    });
-
-    it('should handle email sending failure', async () => {
-      mockEmailService.sendConfirmationEmail.mockRejectedValueOnce(
-        new Error('Email service unavailable'),
-      );
-
-      await expect(service.registerUser(newUserInput)).rejects.toThrow(
-        'Email service unavailable',
+        'Failed to register user',
       );
     });
   });

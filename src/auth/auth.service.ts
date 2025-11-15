@@ -1,6 +1,8 @@
 import {
   ConflictException,
+  HttpException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
@@ -36,31 +38,43 @@ export class AuthService {
     this.logger.info(`Attempting to register user with email`, {
       email: data.email,
     });
+    try {
+      const foundUser = await this.usersService.getUser({ email: data.email });
+      if (foundUser) {
+        this.logger.warn(`Registration failed: Email already in use`, {
+          email: data.email,
+        });
+        throw new ConflictException('Email is already in use');
+      }
 
-    const foundUser = await this.usersService.getUser({ email: data.email });
-    if (foundUser) {
-      this.logger.warn(`Registration failed: Email already in use`, {
+      const hashedPassword = await this.hashPassword(data.password);
+
+      const newUser = await this.usersService.createUser({
         email: data.email,
+        password: hashedPassword,
+        isEmailConfirmed: false,
       });
-      throw new ConflictException('Email is already in use');
+
+      const token = await this.createEmailConfirmationToken(newUser.id);
+      await this.emailService.sendConfirmationEmail(newUser.email, token.token);
+
+      this.logger.info(
+        `User registered successfully with email: ${data.email}`,
+        {
+          userId: newUser.id,
+        },
+      );
+      return newUser;
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Error during user registration`, {
+        email: data.email,
+        error,
+      });
+      throw new InternalServerErrorException('Failed to register user');
     }
-
-    const hashedPassword = await this.hashPassword(data.password);
-
-    const newUser = await this.usersService.createUser({
-      email: data.email,
-      password: hashedPassword,
-      isEmailConfirmed: false,
-    });
-
-    const token = await this.createEmailConfirmationToken(newUser.id);
-
-    await this.emailService.sendConfirmationEmail(newUser.email, token.token);
-
-    this.logger.info(`User registered successfully with email: ${data.email}`, {
-      userId: newUser.id,
-    });
-    return newUser;
   }
 
   async changePassword(
@@ -69,250 +83,294 @@ export class AuthService {
     newPassword: string,
   ) {
     this.logger.info(`User requested password change`, { userId });
-    const user = await this.usersService.getUser({ id: userId });
+    try {
+      const user = await this.usersService.getUser({ id: userId });
 
-    if (!user) {
-      this.logger.warn(`User not found for password change`, { userId });
-      throw new UnauthorizedException('User not found');
-    }
+      if (!user) {
+        this.logger.warn(`User not found for password change`, { userId });
+        throw new UnauthorizedException('User not found');
+      }
 
-    const isCurrentPasswordValid = await bcrypt.compare(
-      currentPassword,
-      user.password,
-    );
-    if (!isCurrentPasswordValid) {
-      this.logger.warn(`User provided incorrect current password`, { userId });
-      throw new UnauthorizedException('Current password is incorrect');
-    }
-
-    const isSamePassword = await bcrypt.compare(newPassword, user.password);
-    if (isSamePassword) {
-      this.logger.warn(`User attempted to change to the same password`, {
-        userId,
-      });
-      throw new ConflictException(
-        'New password must be different from current password',
+      const isCurrentPasswordValid = await bcrypt.compare(
+        currentPassword,
+        user.password,
       );
+      if (!isCurrentPasswordValid) {
+        this.logger.warn(`User provided incorrect current password`, {
+          userId,
+        });
+        throw new UnauthorizedException('Current password is incorrect');
+      }
+
+      const isSamePassword = await bcrypt.compare(newPassword, user.password);
+      if (isSamePassword) {
+        this.logger.warn(`User attempted to change to the same password`, {
+          userId,
+        });
+        throw new ConflictException(
+          'New password must be different from current password',
+        );
+      }
+
+      const hashedNewPassword = await this.hashPassword(newPassword);
+
+      await this.usersService.updateUser(userId, {
+        password: hashedNewPassword,
+        refreshToken: null,
+      });
+
+      return {
+        success: true,
+        message: 'Password changed successfully',
+      };
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Error during password change for user`, {
+        userId,
+        error,
+      });
+      throw new InternalServerErrorException('Failed to change password');
     }
-
-    const hashedNewPassword = await this.hashPassword(newPassword);
-
-    await this.usersService.updateUser(userId, {
-      password: hashedNewPassword,
-      refreshToken: null,
-    });
-
-    this.logger.info(`User changed password successfully`, { userId });
-
-    return {
-      success: true,
-      message: 'Password changed successfully',
-    };
   }
 
   async confirmEmail(tokenString: string) {
     this.logger.info(`Attempting to confirm email with token`);
-    const token = await this.prismaService.emailConfirmationToken.findUnique({
-      where: { token: tokenString },
-      include: { user: true },
-    });
+    try {
+      const token = await this.prismaService.emailConfirmationToken.findUnique({
+        where: { token: tokenString },
+        include: { user: true },
+      });
 
-    if (!token) {
-      this.logger.warn(`Invalid confirmation token`, { token: tokenString });
-      throw new UnauthorizedException('Invalid confirmation token');
-    }
+      if (!token) {
+        this.logger.warn(`Invalid confirmation token`, { token: tokenString });
+        throw new UnauthorizedException('Invalid confirmation token');
+      }
 
-    if (token.expiresAt < new Date()) {
-      this.logger.warn(`Confirmation token has expired`, {
+      if (token.expiresAt < new Date()) {
+        this.logger.warn(`Confirmation token has expired`, {
+          token: tokenString,
+        });
+        throw new UnauthorizedException('Confirmation token has expired');
+      }
+
+      if (token.isUsed) {
+        this.logger.warn(`Confirmation token has already been used`, {
+          token: tokenString,
+        });
+        throw new ConflictException('Token has already been used');
+      }
+
+      if (token.user.isEmailConfirmed) {
+        this.logger.warn(`Email is already confirmed for user`, {
+          userId: token.userId,
+        });
+        throw new ConflictException('Email is already confirmed');
+      }
+
+      // Mark token as used and confirm user email
+      await this.prismaService.$transaction([
+        this.prismaService.emailConfirmationToken.update({
+          where: { id: token.id },
+          data: {
+            isUsed: true,
+            usedAt: new Date(),
+          },
+        }),
+        this.prismaService.user.update({
+          where: { id: token.userId },
+          data: { isEmailConfirmed: true },
+        }),
+      ]);
+
+      return {
+        success: true,
+        message: 'Email confirmed successfully',
+      };
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Error during email confirmation`, {
         token: tokenString,
+        error,
       });
-      throw new UnauthorizedException('Confirmation token has expired');
+      throw new InternalServerErrorException('Failed to confirm email');
     }
-
-    if (token.isUsed) {
-      this.logger.warn(`Confirmation token has already been used`, {
-        token: tokenString,
-      });
-      throw new ConflictException('Token has already been used');
-    }
-
-    if (token.user.isEmailConfirmed) {
-      this.logger.warn(`Email is already confirmed for user`, {
-        userId: token.userId,
-      });
-      throw new ConflictException('Email is already confirmed');
-    }
-
-    // Mark token as used and confirm user email
-    await this.prismaService.$transaction([
-      this.prismaService.emailConfirmationToken.update({
-        where: { id: token.id },
-        data: {
-          isUsed: true,
-          usedAt: new Date(),
-        },
-      }),
-      this.prismaService.user.update({
-        where: { id: token.userId },
-        data: { isEmailConfirmed: true },
-      }),
-    ]);
-
-    this.logger.info(`Email confirmed successfully for user`, {
-      userId: token.userId,
-    });
-
-    return {
-      success: true,
-      message: 'Email confirmed successfully',
-    };
   }
 
   async resendConfirmationEmail(data: ResendConfirmationDto) {
     this.logger.info(`Attempting to resend confirmation email`, {
       email: data.email,
     });
-    const user = await this.usersService.getUser({ email: data.email });
+    try {
+      const user = await this.usersService.getUser({ email: data.email });
 
-    if (!user) {
-      this.logger.warn(`User not found for resending confirmation email`, {
-        email: data.email,
-      });
-      throw new UnauthorizedException('User not found');
-    }
+      if (!user) {
+        this.logger.warn(`User not found for resending confirmation email`, {
+          email: data.email,
+        });
+        throw new UnauthorizedException('User not found');
+      }
 
-    if (user.isEmailConfirmed) {
-      this.logger.warn(`Email is already confirmed for user`, {
-        userId: user.id,
-      });
-      throw new ConflictException('Email is already confirmed');
-    }
+      if (user.isEmailConfirmed) {
+        this.logger.warn(`Email is already confirmed for user`, {
+          userId: user.id,
+        });
+        throw new ConflictException('Email is already confirmed');
+      }
 
-    // Check if user has requested in the last 30 seconds
-    const recentRequest =
-      await this.prismaService.emailConfirmationToken.findFirst({
+      // Check if user has requested in the last 30 seconds
+      const recentRequest =
+        await this.prismaService.emailConfirmationToken.findFirst({
+          where: {
+            userId: user.id,
+            createdAt: {
+              gte: new Date(Date.now() - 30 * 1000), // Last 30 seconds
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+
+      if (recentRequest) {
+        const timeLeft = Math.ceil(
+          (30000 - (Date.now() - recentRequest.createdAt.getTime())) / 1000,
+        );
+        this.logger.warn(`User requested confirmation email too soon`, {
+          userId: user.id,
+          timeLeft,
+        });
+        throw new UnauthorizedException(
+          `Please wait ${timeLeft} seconds before requesting another email confirmation.`,
+        );
+      }
+
+      // Invalidate existing unused tokens
+      await this.prismaService.emailConfirmationToken.updateMany({
         where: {
           userId: user.id,
-          createdAt: {
-            gte: new Date(Date.now() - 30 * 1000), // Last 30 seconds
-          },
+          isUsed: false,
         },
-        orderBy: {
-          createdAt: 'desc',
+        data: {
+          isUsed: true,
+          usedAt: new Date(),
         },
       });
 
-    if (recentRequest) {
-      const timeLeft = Math.ceil(
-        (30000 - (Date.now() - recentRequest.createdAt.getTime())) / 1000,
-      );
-      this.logger.warn(`User requested confirmation email too soon`, {
-        userId: user.id,
-        timeLeft,
+      const token = await this.createEmailConfirmationToken(user.id);
+      await this.emailService.sendConfirmationEmail(user.email, token.token);
+
+      return {
+        success: true,
+        message: 'Confirmation email sent',
+      };
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Failed to resend confirmation email`, {
+        email: data.email,
+        error,
       });
-      throw new UnauthorizedException(
-        `Please wait ${timeLeft} seconds before requesting another email confirmation.`,
+      throw new InternalServerErrorException(
+        'Failed to resend confirmation email',
       );
     }
-
-    // Invalidate existing unused tokens
-    await this.prismaService.emailConfirmationToken.updateMany({
-      where: {
-        userId: user.id,
-        isUsed: false,
-      },
-      data: {
-        isUsed: true,
-        usedAt: new Date(),
-      },
-    });
-
-    const token = await this.createEmailConfirmationToken(user.id);
-
-    await this.emailService.sendConfirmationEmail(user.email, token.token);
-
-    this.logger.info(`Confirmation email resent successfully`, {
-      userId: user.id,
-    });
-
-    return {
-      success: true,
-      message: 'Confirmation email sent',
-    };
   }
 
   async validateUser(data: LoginUserDto) {
     this.logger.info(`Validating user`, { email: data.email });
-    const user = await this.usersService.getUser({
-      email: data.email,
-    });
-    if (!user) {
-      this.logger.warn(`User not found during validation`, {
+    try {
+      const user = await this.usersService.getUser({
         email: data.email,
       });
-      throw new UnauthorizedException('Invalid email and/or password');
-    }
+      if (!user) {
+        this.logger.warn(`User not found during validation`, {
+          email: data.email,
+        });
+        throw new UnauthorizedException('Invalid email and/or password');
+      }
 
-    if (user.userType === 'SYSTEM' || user.userType === 'DEMO') {
-      this.logger.warn(`Attempt to login with restricted user type`, {
+      if (user.userType === 'SYSTEM' || user.userType === 'DEMO') {
+        this.logger.warn(`Attempt to login with restricted user type`, {
+          email: data.email,
+          userType: user.userType,
+        });
+        throw new UnauthorizedException('Invalid email and/or password');
+      }
+
+      const isMatch = await bcrypt.compare(data.password, user.password);
+      if (!isMatch) {
+        this.logger.warn(`Invalid password attempt`, { email: data.email });
+        throw new UnauthorizedException('Invalid email and/or password');
+      }
+
+      if (!user.isActive) {
+        this.logger.warn(`Attempt to login to disabled account`, {
+          email: data.email,
+        });
+        throw new UnauthorizedException('Account is disabled');
+      }
+
+      if (!user.isEmailConfirmed) {
+        this.logger.warn(`Attempt to login with unconfirmed email`, {
+          email: data.email,
+        });
+        throw new EmailNotConfirmedException();
+      }
+
+      return user;
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Failed to validate user`, {
         email: data.email,
-        userType: user.userType,
+        error,
       });
-      throw new UnauthorizedException('Invalid email and/or password');
+      throw new InternalServerErrorException('Failed to validate user');
     }
-
-    const isMatch = await bcrypt.compare(data.password, user.password);
-    if (!isMatch) {
-      this.logger.warn(`Invalid password attempt`, { email: data.email });
-      throw new UnauthorizedException('Invalid email and/or password');
-    }
-
-    if (!user.isActive) {
-      this.logger.warn(`Attempt to login to disabled account`, {
-        email: data.email,
-      });
-      throw new UnauthorizedException('Account is disabled');
-    }
-
-    if (!user.isEmailConfirmed) {
-      this.logger.warn(`Attempt to login with unconfirmed email`, {
-        email: data.email,
-      });
-      throw new EmailNotConfirmedException();
-    }
-
-    this.logger.info(`User validated successfully`, { email: data.email });
-    return user;
   }
 
   async login(user: UserResponseDto) {
     this.logger.info(`Logging in user`, { userId: user.id, email: user.email });
-    const payload = {
-      sub: user.id,
-      email: user.email,
-    };
+    try {
+      const payload = {
+        sub: user.id,
+        email: user.email,
+      };
 
-    const access_token = this.jwtService.sign(payload);
-    const refresh_token = this.jwtService.sign(payload, {
-      expiresIn: this.configService.get('JWT_REFRESH_EXP') || '30d',
-    });
+      const access_token = this.jwtService.sign(payload);
+      const refresh_token = this.jwtService.sign(payload, {
+        expiresIn: this.configService.get('JWT_REFRESH_EXP') || '30d',
+      });
 
-    const hashedRefreshToken = await bcrypt.hash(refresh_token, 10);
-    await this.usersService.updateUser(user.id, {
-      refreshToken: hashedRefreshToken,
-      lastLoginAt: new Date(),
-    });
+      const hashedRefreshToken = await bcrypt.hash(refresh_token, 10);
+      await this.usersService.updateUser(user.id, {
+        refreshToken: hashedRefreshToken,
+        lastLoginAt: new Date(),
+      });
 
-    this.logger.info(`User logged in successfully`, {
-      userId: user.id,
-      email: user.email,
-    });
-    return {
-      userId: user.id,
-      email: user.email,
-      access_token,
-      refresh_token,
-    };
+      return {
+        userId: user.id,
+        email: user.email,
+        access_token,
+        refresh_token,
+      };
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Failed to login user`, {
+        userId: user.id,
+        email: user.email,
+        error,
+      });
+      throw new InternalServerErrorException('Failed to login user');
+    }
   }
 
   async refreshTokens(refreshToken: string) {
@@ -325,36 +383,46 @@ export class AuthService {
       throw new UnauthorizedException('Invalid token');
     }
 
-    const user = await this.usersService.getUser({ id: payload.sub });
-    if (!user || !user.refreshToken) {
-      this.logger.warn(`No user or refresh token found during token refresh`, {
-        payload,
-      });
-      throw new UnauthorizedException('No user or token');
+    try {
+      const user = await this.usersService.getUser({ id: payload.sub });
+      if (!user || !user.refreshToken) {
+        this.logger.warn(
+          `No user or refresh token found during token refresh`,
+          {
+            payload,
+          },
+        );
+        throw new UnauthorizedException('No user or token');
+      }
+
+      const isValid = await bcrypt.compare(refreshToken, user.refreshToken);
+      if (!isValid) {
+        this.logger.warn(`Invalid refresh token attempt`, { userId: user.id });
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+
+      if (!user.isActive) {
+        this.logger.warn(`Attempt to refresh tokens for disabled account`, {
+          userId: user.id,
+        });
+        throw new UnauthorizedException('Account is disabled');
+      }
+
+      const newPayload: JwtPayload = {
+        sub: user.id,
+        email: user.email,
+      };
+
+      return {
+        access_token: this.jwtService.sign(newPayload),
+      };
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Failed to refresh tokens`, { payload, error });
+      throw new InternalServerErrorException('Failed to refresh tokens');
     }
-
-    const isValid = await bcrypt.compare(refreshToken, user.refreshToken);
-    if (!isValid) {
-      this.logger.warn(`Invalid refresh token attempt`, { userId: user.id });
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-
-    if (!user.isActive) {
-      this.logger.warn(`Attempt to refresh tokens for disabled account`, {
-        userId: user.id,
-      });
-      throw new UnauthorizedException('Account is disabled');
-    }
-
-    const newPayload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-    };
-
-    this.logger.info(`Tokens refreshed successfully`, { userId: user.id });
-    return {
-      access_token: this.jwtService.sign(newPayload),
-    };
   }
 
   async requestPasswordReset(
@@ -365,111 +433,128 @@ export class AuthService {
     this.logger.info(`Password reset requested for email`, {
       email: data.email,
     });
-    const user = await this.usersService.getUser({ email: data.email });
+    try {
+      const user = await this.usersService.getUser({ email: data.email });
 
-    if (!user) {
-      this.logger.warn(`User not found for password reset`, {
-        email: data.email,
-      });
-      throw new UnauthorizedException('User not found');
-    }
+      if (!user) {
+        this.logger.warn(`User not found for password reset`, {
+          email: data.email,
+        });
+        throw new UnauthorizedException('User not found');
+      }
 
-    // Check if user has requested a reset in the last 30 seconds
-    const recentRequest = await this.prismaService.passwordResetToken.findFirst(
-      {
+      // Check if user has requested a reset in the last 30 seconds
+      const recentRequest =
+        await this.prismaService.passwordResetToken.findFirst({
+          where: {
+            userId: user.id,
+            createdAt: {
+              gte: new Date(Date.now() - 30 * 1000), // Last 30 seconds
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+
+      if (recentRequest) {
+        const timeLeft = Math.ceil(
+          (30000 - (Date.now() - recentRequest.createdAt.getTime())) / 1000,
+        );
+        this.logger.warn(`User requested password reset too soon`, {
+          userId: user.id,
+          timeLeft,
+        });
+        throw new UnauthorizedException(
+          `Please wait ${timeLeft} seconds before requesting another password reset.`,
+        );
+      }
+
+      // Invalidate existing unused tokens
+      await this.prismaService.passwordResetToken.updateMany({
         where: {
           userId: user.id,
-          createdAt: {
-            gte: new Date(Date.now() - 30 * 1000), // Last 30 seconds
-          },
+          isUsed: false,
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      },
-    );
-
-    if (recentRequest) {
-      const timeLeft = Math.ceil(
-        (30000 - (Date.now() - recentRequest.createdAt.getTime())) / 1000,
-      );
-      this.logger.warn(`User requested password reset too soon`, {
-        userId: user.id,
-        timeLeft,
-      });
-      throw new UnauthorizedException(
-        `Please wait ${timeLeft} seconds before requesting another password reset.`,
-      );
-    }
-
-    // Invalidate existing unused tokens
-    await this.prismaService.passwordResetToken.updateMany({
-      where: {
-        userId: user.id,
-        isUsed: false,
-      },
-      data: {
-        isUsed: true,
-        usedAt: new Date(),
-      },
-    });
-
-    const token = await this.createPasswordResetToken(
-      user.id,
-      ipAddress,
-      userAgent,
-    );
-
-    await this.emailService.sendPasswordResetEmail(user.email, token.token);
-
-    this.logger.info(`Password reset email sent successfully`, {
-      userId: user.id,
-    });
-    return {
-      success: true,
-      message: 'A password reset link has been sent',
-    };
-  }
-
-  async resetPassword(tokenString: string, data: ResetPasswordDto) {
-    this.logger.info(`Attempting to reset password with token`);
-    const token = await this.prismaService.passwordResetToken.findUnique({
-      where: { token: tokenString },
-      include: { user: true },
-    });
-
-    if (!token || token.expiresAt < new Date() || token.isUsed) {
-      this.logger.warn(`Invalid or expired reset token`);
-      throw new UnauthorizedException('Invalid or expired reset token');
-    }
-
-    const hashedPassword = await this.hashPassword(data.password);
-
-    // Update password, mark token as used, and invalidate refresh tokens
-    await this.prismaService.$transaction([
-      this.prismaService.passwordResetToken.update({
-        where: { id: token.id },
         data: {
           isUsed: true,
           usedAt: new Date(),
         },
-      }),
-      this.prismaService.user.update({
-        where: { id: token.userId },
-        data: {
-          password: hashedPassword,
-          refreshToken: null, // Invalidate all sessions
-        },
-      }),
-    ]);
+      });
 
-    this.logger.info(`Password reset successfully for user`, {
-      userId: token.userId,
-    });
-    return {
-      success: true,
-      message: 'Password reset successfully',
-    };
+      const token = await this.createPasswordResetToken(
+        user.id,
+        ipAddress,
+        userAgent,
+      );
+
+      await this.emailService.sendPasswordResetEmail(user.email, token.token);
+
+      return {
+        success: true,
+        message: 'A password reset link has been sent',
+      };
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Failed to request password reset`, {
+        email: data.email,
+        error,
+      });
+      throw new InternalServerErrorException(
+        'Failed to request password reset',
+      );
+    }
+  }
+
+  async resetPassword(tokenString: string, data: ResetPasswordDto) {
+    this.logger.info(`Attempting to reset password with token`);
+    try {
+      const token = await this.prismaService.passwordResetToken.findUnique({
+        where: { token: tokenString },
+        include: { user: true },
+      });
+
+      if (!token || token.expiresAt < new Date() || token.isUsed) {
+        this.logger.warn(`Invalid or expired reset token`);
+        throw new UnauthorizedException('Invalid or expired reset token');
+      }
+
+      const hashedPassword = await this.hashPassword(data.password);
+
+      // Update password, mark token as used, and invalidate refresh tokens
+      await this.prismaService.$transaction([
+        this.prismaService.passwordResetToken.update({
+          where: { id: token.id },
+          data: {
+            isUsed: true,
+            usedAt: new Date(),
+          },
+        }),
+        this.prismaService.user.update({
+          where: { id: token.userId },
+          data: {
+            password: hashedPassword,
+            refreshToken: null, // Invalidate all sessions
+          },
+        }),
+      ]);
+
+      return {
+        success: true,
+        message: 'Password reset successfully',
+      };
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Error during password reset`, {
+        token: tokenString,
+        error,
+      });
+      throw new InternalServerErrorException('Failed to reset password');
+    }
   }
 
   async verifyCaptcha(token: string) {
