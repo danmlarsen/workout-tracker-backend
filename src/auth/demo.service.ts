@@ -46,13 +46,14 @@ export class DemoService {
   }
 
   private async seedDemoData(userId: number) {
+    this.logger.info(`Seeding demo data for user`, { userId });
     const exercises = await this.prismaService.exercise.findMany({
       where: { userId: -1 },
       orderBy: { name: 'asc' },
     });
 
     if (exercises.length === 0) {
-      console.warn('No system exercises found for demo data seeding');
+      this.logger.warn('No system exercises found for demo data seeding');
       return;
     }
 
@@ -264,6 +265,7 @@ export class DemoService {
   // Cleanup job to remove expired demo users
   // @Cron('0 */15 * * * *') // Every 15 minutes
   async cleanupExpiredDemoUsers() {
+    this.logger.info('Starting cleanup of expired demo users');
     const whereClause = {
       userType: UserType.DEMO,
       demoExpiresAt: { lt: new Date() },
@@ -288,9 +290,13 @@ export class DemoService {
         });
       });
     }
+    this.logger.info('Completed cleanup of expired demo users', {
+      deletedCount: usersToDelete.length,
+    });
   }
 
   private async checkIpRateLimit(ipAddress: string) {
+    this.logger.info(`Checking IP rate limit`, { ipAddress });
     const now = new Date();
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
@@ -312,6 +318,10 @@ export class DemoService {
     });
 
     if (dailyCount > 10) {
+      this.logger.warn(`Daily demo limit reached for IP`, {
+        ipAddress,
+        dailyCount,
+      });
       throw new BadRequestException(
         'Daily demo limit reached for this IP address',
       );
@@ -326,6 +336,10 @@ export class DemoService {
     });
 
     if (hourlyCount > 3) {
+      this.logger.warn(`Hourly demo limit reached for IP`, {
+        ipAddress,
+        hourlyCount,
+      });
       throw new BadRequestException(
         'Hourly demo limit reached. Please try again later.',
       );

@@ -14,6 +14,17 @@ describe('DemoService', () => {
         { provide: PrismaService, useValue: {} },
         { provide: AuthService, useValue: {} },
         { provide: ConfigService, useValue: {} },
+        {
+          provide: 'PinoLogger:DemoService',
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            fatal: jest.fn(),
+            debug: jest.fn(),
+            trace: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
