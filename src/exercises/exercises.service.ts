@@ -21,7 +21,6 @@ export class ExercisesService {
 
   async createExercise(userId: number | null, data: CreateExerciseDto) {
     this.logger.info(`Creating exercise for user ${userId}`, { userId, data });
-
     try {
       const foundExercise = await this.prismaService.exercise.findFirst({
         where: {
@@ -70,7 +69,6 @@ export class ExercisesService {
     const EXERCISE_LIMIT = 20;
 
     this.logger.info(`Fetching exercises`, { userId, options });
-
     try {
       const exercises = await this.prismaService.exercise.findMany({
         where: {
@@ -214,7 +212,6 @@ export class ExercisesService {
     data: UpdateExerciseDto,
   ) {
     this.logger.info(`Updating exercise`, { userId, exerciseId, data });
-
     try {
       const exercise = await this.prismaService.exercise.findFirst({
         where: { AND: [{ id: exerciseId }, { userId }] },
@@ -222,7 +219,7 @@ export class ExercisesService {
 
       if (!exercise) throw new NotFoundException('exercise not found');
 
-      return this.prismaService.exercise.update({
+      return await this.prismaService.exercise.update({
         where: { id: exerciseId },
         data,
       });
@@ -242,7 +239,6 @@ export class ExercisesService {
 
   async deleteExercise(userId: number, exerciseId: number) {
     this.logger.info(`Deleting exercise`, { userId, exerciseId });
-
     try {
       const exercise = await this.prismaService.exercise.findFirst({
         where: { AND: [{ id: exerciseId }, { userId }] },
@@ -250,7 +246,7 @@ export class ExercisesService {
 
       if (!exercise) throw new NotFoundException('Exercise not found');
 
-      return this.prismaService.exercise.delete({
+      return await this.prismaService.exercise.delete({
         where: { id: exerciseId },
       });
     } catch (error: unknown) {
@@ -278,7 +274,6 @@ export class ExercisesService {
       exerciseId,
       options,
     });
-
     try {
       const workouts = await this.prismaService.workout.findMany({
         where: {

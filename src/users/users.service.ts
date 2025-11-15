@@ -1,6 +1,7 @@
 import {
   HttpException,
   Injectable,
+  InternalServerErrorException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -20,8 +21,11 @@ export class UsersService {
     try {
       return await this.prismaService.user.findFirst({ where: filter });
     } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       this.logger.error(`Failed to fetch user`, { filter, error });
-      throw error;
+      throw new InternalServerErrorException('Failed to fetch user');
     }
   }
 
@@ -30,8 +34,11 @@ export class UsersService {
     try {
       return await this.prismaService.user.findMany();
     } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       this.logger.error(`Failed to fetch all users`, { error });
-      throw error;
+      throw new InternalServerErrorException('Failed to fetch all users');
     }
   }
 
@@ -40,8 +47,11 @@ export class UsersService {
     try {
       return await this.prismaService.user.create({ data });
     } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       this.logger.error(`Failed to create user`, { data, error });
-      throw error;
+      throw new InternalServerErrorException('Failed to create user');
     }
   }
 
@@ -50,22 +60,26 @@ export class UsersService {
     try {
       return await this.prismaService.user.update({ where: { id }, data });
     } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       this.logger.error(`Failed to update user`, { id, data, error });
-      throw error;
+      throw new InternalServerErrorException('Failed to update user');
     }
   }
 
   async deleteAccount(userId: number, password: string) {
     this.logger.info(`Deleting account for user`, { userId });
-
     try {
       const user = await this.getUser({ id: userId });
       if (!user) {
+        this.logger.warn(`User not found for account deletion`, { userId });
         throw new UnauthorizedException('User not found');
       }
 
       const isPasswordValid = await bcrypt.compare(password, user.password);
       if (!isPasswordValid) {
+        this.logger.warn(`Incorrect password for account deletion`, { userId });
         throw new UnauthorizedException('Incorrect password');
       }
 
@@ -95,7 +109,7 @@ export class UsersService {
         throw error;
       }
       this.logger.error(`Failed to delete account for user`, { userId, error });
-      throw error;
+      throw new InternalServerErrorException('Failed to delete account');
     }
   }
 }

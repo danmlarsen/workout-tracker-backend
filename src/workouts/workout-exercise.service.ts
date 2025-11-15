@@ -24,7 +24,6 @@ export class WorkoutExerciseService {
     data: CreateWorkoutExerciseDto,
   ) {
     this.logger.info(`Creating workout exercise`, { userId, workoutId, data });
-
     try {
       const workout = await this.prismaService.workout.findFirst({
         where: { id: workoutId, userId },
@@ -61,7 +60,7 @@ export class WorkoutExerciseService {
             }))
           : [{ setNumber: 1 }];
 
-      return this.prismaService.workout.update({
+      return await this.prismaService.workout.update({
         where: { id: workoutId },
         data: {
           workoutExercises: {
@@ -99,7 +98,6 @@ export class WorkoutExerciseService {
     data: UpdateWorkoutExerciseDto,
   ) {
     this.logger.info(`Updating workout exercise`, { userId, id, data });
-
     try {
       const workoutExercise =
         await this.prismaService.workoutExercise.findUnique({
@@ -120,7 +118,7 @@ export class WorkoutExerciseService {
         throw new ForbiddenException('Not allowed');
       }
 
-      return this.prismaService.workout.update({
+      return await this.prismaService.workout.update({
         where: { id: workoutExercise.workoutId },
         data: {
           workoutExercises: {
@@ -150,7 +148,6 @@ export class WorkoutExerciseService {
 
   async deleteWorkoutExercise(userId: number, id: number) {
     this.logger.info(`Deleting workout exercise`, { userId, id });
-
     try {
       const workoutExercise =
         await this.prismaService.workoutExercise.findUnique({
@@ -171,7 +168,7 @@ export class WorkoutExerciseService {
         throw new ForbiddenException('Not allowed');
       }
 
-      return this.prismaService.workout.update({
+      return await this.prismaService.workout.update({
         where: { id: workoutExercise.workoutId },
         data: {
           workoutExercises: {
@@ -197,7 +194,6 @@ export class WorkoutExerciseService {
 
   async getWorkoutExerciseSets(userId: number, id: number) {
     this.logger.info(`Getting workout exercise sets`, { userId, id });
-
     try {
       const workoutExercise =
         await this.prismaService.workoutExercise.findUnique({
