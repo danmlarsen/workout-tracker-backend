@@ -7,7 +7,21 @@ describe('UsersService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersService, { provide: PrismaService, useValue: {} }],
+      providers: [
+        UsersService,
+        { provide: PrismaService, useValue: {} },
+        {
+          provide: 'PinoLogger:UsersService',
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            fatal: jest.fn(),
+            debug: jest.fn(),
+            trace: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
