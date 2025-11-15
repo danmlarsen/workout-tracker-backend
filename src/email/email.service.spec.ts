@@ -11,6 +11,17 @@ describe('EmailService', () => {
         EmailService,
         { provide: ConfigService, useValue: {} },
         { provide: MAIL_PROVIDER, useValue: {} },
+        {
+          provide: 'PinoLogger:EmailService',
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            fatal: jest.fn(),
+            debug: jest.fn(),
+            trace: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
