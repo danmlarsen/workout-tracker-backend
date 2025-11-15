@@ -22,11 +22,13 @@ const mockPrismaService = {
 
 const mockUser: User = {
   id: 1,
+  userType: 'REGULAR',
   email: 'test@test.com',
   password: 'password',
   createdAt: new Date(),
   updatedAt: new Date(),
   lastLoginAt: new Date(),
+  demoExpiresAt: null,
   refreshToken: null,
   isEmailConfirmed: true,
   isActive: true,
@@ -73,6 +75,17 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: {} },
         { provide: ConfigService, useValue: {} },
         { provide: EmailService, useValue: mockEmailService },
+        {
+          provide: 'PinoLogger:AuthService',
+          useValue: {
+            info: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            fatal: jest.fn(),
+            debug: jest.fn(),
+            trace: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
