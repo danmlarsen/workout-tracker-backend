@@ -1,62 +1,96 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateWorkoutExerciseDto } from './dtos/create-workout-exercise.dto';
 import { UpdateWorkoutExerciseDto } from './dtos/update-workout-exercise.dto';
 import { FULL_WORKOUT_INCLUDE } from './const/full-workout-include';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class WorkoutExerciseService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    @InjectPinoLogger(WorkoutExerciseService.name)
+    private readonly logger: PinoLogger,
+  ) {}
 
   async createWorkoutExercise(
     userId: number,
     workoutId: number,
     data: CreateWorkoutExerciseDto,
   ) {
-    const workout = await this.prismaService.workout.findFirst({
-      where: { id: workoutId, userId },
-    });
+    this.logger.info(`Creating workout exercise`, { userId, workoutId, data });
 
-    if (!workout) throw new ForbiddenException('Not allowed');
-
-    const maxOrder: { _max: { exerciseOrder: number | null } } =
-      await this.prismaService.workoutExercise.aggregate({
-        where: { workoutId },
-        _max: { exerciseOrder: true },
+    try {
+      const workout = await this.prismaService.workout.findFirst({
+        where: { id: workoutId, userId },
       });
 
-    const nextOrder = (maxOrder._max.exerciseOrder ?? 0) + 1;
+      if (!workout) {
+        this.logger.warn(
+          `User tried to create workout exercise for a workout that does not exist or they do not own`,
+          { userId, workoutId },
+        );
+        throw new ForbiddenException('Not allowed');
+      }
 
-    const previousWorkoutExercise = await this.findPreviousWorkoutExercise(
-      userId,
-      data.exerciseId,
-      workout.startedAt,
-    );
+      const maxOrder: { _max: { exerciseOrder: number | null } } =
+        await this.prismaService.workoutExercise.aggregate({
+          where: { workoutId },
+          _max: { exerciseOrder: true },
+        });
 
-    // Create sets based on previous structure or default to single set
-    const setsToCreate =
-      previousWorkoutExercise && previousWorkoutExercise.workoutSets.length > 0
-        ? previousWorkoutExercise.workoutSets.map((_, index) => ({
-            setNumber: index + 1,
-          }))
-        : [{ setNumber: 1 }];
+      const nextOrder = (maxOrder._max.exerciseOrder ?? 0) + 1;
 
-    return this.prismaService.workout.update({
-      where: { id: workoutId },
-      data: {
-        workoutExercises: {
-          create: {
-            exerciseId: data.exerciseId,
-            exerciseOrder: nextOrder,
-            previousWorkoutExerciseId: previousWorkoutExercise?.id,
-            workoutSets: {
-              create: setsToCreate,
+      const previousWorkoutExercise = await this.findPreviousWorkoutExercise(
+        userId,
+        data.exerciseId,
+        workout.startedAt,
+      );
+
+      // Create sets based on previous structure or default to single set
+      const setsToCreate =
+        previousWorkoutExercise &&
+        previousWorkoutExercise.workoutSets.length > 0
+          ? previousWorkoutExercise.workoutSets.map((_, index) => ({
+              setNumber: index + 1,
+            }))
+          : [{ setNumber: 1 }];
+
+      return this.prismaService.workout.update({
+        where: { id: workoutId },
+        data: {
+          workoutExercises: {
+            create: {
+              exerciseId: data.exerciseId,
+              exerciseOrder: nextOrder,
+              previousWorkoutExerciseId: previousWorkoutExercise?.id,
+              workoutSets: {
+                create: setsToCreate,
+              },
             },
           },
         },
-      },
-      include: FULL_WORKOUT_INCLUDE,
-    });
+        include: FULL_WORKOUT_INCLUDE,
+      });
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Failed to create workout exercise`, {
+        userId,
+        workoutId,
+        data,
+        error,
+      });
+      throw new InternalServerErrorException(
+        'Failed to create workout exercise',
+      );
+    }
   }
 
   async updateWorkoutExercise(
@@ -64,75 +98,142 @@ export class WorkoutExerciseService {
     id: number,
     data: UpdateWorkoutExerciseDto,
   ) {
-    const workoutExercise = await this.prismaService.workoutExercise.findUnique(
-      {
-        where: { id },
-        include: {
-          workout: true,
-        },
-      },
-    );
+    this.logger.info(`Updating workout exercise`, { userId, id, data });
 
-    if (!workoutExercise || workoutExercise.workout.userId !== userId) {
-      throw new ForbiddenException('Not allowed');
-    }
+    try {
+      const workoutExercise =
+        await this.prismaService.workoutExercise.findUnique({
+          where: { id },
+          include: {
+            workout: true,
+          },
+        });
 
-    return this.prismaService.workout.update({
-      where: { id: workoutExercise.workoutId },
-      data: {
-        workoutExercises: {
-          update: {
-            where: { id },
-            data,
+      if (!workoutExercise || workoutExercise.workout.userId !== userId) {
+        this.logger.warn(
+          `User tried to update a workout exercise that does not exist or they do not own`,
+          {
+            userId,
+            id,
+          },
+        );
+        throw new ForbiddenException('Not allowed');
+      }
+
+      return this.prismaService.workout.update({
+        where: { id: workoutExercise.workoutId },
+        data: {
+          workoutExercises: {
+            update: {
+              where: { id },
+              data,
+            },
           },
         },
-      },
-      include: FULL_WORKOUT_INCLUDE,
-    });
+        include: FULL_WORKOUT_INCLUDE,
+      });
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Failed to update workout exercise`, {
+        userId,
+        id,
+        data,
+        error,
+      });
+      throw new InternalServerErrorException(
+        'Failed to update workout exercise',
+      );
+    }
   }
 
   async deleteWorkoutExercise(userId: number, id: number) {
-    const workoutExercise = await this.prismaService.workoutExercise.findUnique(
-      {
-        where: { id },
-        include: {
-          workout: true,
-        },
-      },
-    );
+    this.logger.info(`Deleting workout exercise`, { userId, id });
 
-    if (!workoutExercise || workoutExercise.workout.userId !== userId) {
-      throw new ForbiddenException('Not allowed');
+    try {
+      const workoutExercise =
+        await this.prismaService.workoutExercise.findUnique({
+          where: { id },
+          include: {
+            workout: true,
+          },
+        });
+
+      if (!workoutExercise || workoutExercise.workout.userId !== userId) {
+        this.logger.warn(
+          `User tried to delete a workout exercise that does not exist or they do not own`,
+          {
+            userId,
+            id,
+          },
+        );
+        throw new ForbiddenException('Not allowed');
+      }
+
+      return this.prismaService.workout.update({
+        where: { id: workoutExercise.workoutId },
+        data: {
+          workoutExercises: {
+            delete: { id },
+          },
+        },
+        include: FULL_WORKOUT_INCLUDE,
+      });
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Failed to delete workout exercise`, {
+        userId,
+        id,
+        error,
+      });
+      throw new InternalServerErrorException(
+        'Failed to delete workout exercise',
+      );
     }
-
-    return this.prismaService.workout.update({
-      where: { id: workoutExercise.workoutId },
-      data: {
-        workoutExercises: {
-          delete: { id },
-        },
-      },
-      include: FULL_WORKOUT_INCLUDE,
-    });
   }
 
   async getWorkoutExerciseSets(userId: number, id: number) {
-    const workoutExercise = await this.prismaService.workoutExercise.findUnique(
-      {
-        where: { id },
-        include: {
-          workout: true,
-          workoutSets: true,
-          exercise: true,
-        },
-      },
-    );
+    this.logger.info(`Getting workout exercise sets`, { userId, id });
 
-    if (!workoutExercise || workoutExercise.workout.userId !== userId) {
-      throw new ForbiddenException('Not allowed');
+    try {
+      const workoutExercise =
+        await this.prismaService.workoutExercise.findUnique({
+          where: { id },
+          include: {
+            workout: true,
+            workoutSets: true,
+            exercise: true,
+          },
+        });
+
+      if (!workoutExercise || workoutExercise.workout.userId !== userId) {
+        this.logger.warn(
+          `User tried to get workout exercise sets for an exercise that does not exist or they do not own`,
+          {
+            userId,
+            id,
+          },
+        );
+        throw new ForbiddenException('Not allowed');
+      }
+
+      return workoutExercise;
+    } catch (error: unknown) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      this.logger.error(`Failed to get workout exercise sets`, {
+        userId,
+        id,
+        error,
+      });
+      throw new InternalServerErrorException(
+        'Failed to get workout exercise sets',
+      );
     }
-
-    return workoutExercise;
   }
 
   private async findPreviousWorkoutExercise(
