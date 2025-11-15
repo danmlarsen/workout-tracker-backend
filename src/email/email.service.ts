@@ -45,11 +45,11 @@ export class EmailService {
 
     try {
       await this.mailProvider.send(emailContent);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(`Failed to send confirmation email to ${email}`, {
         email,
         type: 'confirmation',
-        error: (error as Error).message,
+        error,
       });
     }
   }
@@ -77,11 +77,11 @@ export class EmailService {
 
     try {
       await this.mailProvider.send(emailContent);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error(`Failed to send password reset email to ${email}`, {
         email,
         type: 'password_reset',
-        error: (error as Error).message,
+        error,
       });
     }
   }
