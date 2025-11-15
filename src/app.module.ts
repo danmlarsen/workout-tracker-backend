@@ -8,6 +8,7 @@ import { ExercisesModule } from './exercises/exercises.module';
 import { LoggerModule } from 'nestjs-pino';
 import { EmailModule } from './email/email.module';
 import { HealthModule } from './health/health.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { HealthModule } from './health/health.module';
     ExercisesModule,
     EmailModule,
     HealthModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [],
   providers: [],

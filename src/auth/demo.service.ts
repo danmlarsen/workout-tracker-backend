@@ -4,6 +4,7 @@ import { AuthService } from './auth.service';
 import crypto from 'crypto';
 import { Exercise, Prisma, UserType } from '@prisma/client';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class DemoService {
@@ -23,6 +24,39 @@ export class DemoService {
 
     this.logger.info(`Demo user created`, { userId: demoUser.id, ipAddress });
     return this.authService.login(demoUser);
+  }
+
+  // Cleanup job to remove expired demo users
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async cleanupExpiredDemoUsers() {
+    this.logger.info('Starting cleanup of expired demo users');
+    const whereClause = {
+      userType: UserType.DEMO,
+      demoExpiresAt: { lt: new Date() },
+    };
+
+    const usersToDelete = await this.prismaService.user.findMany({
+      where: whereClause,
+    });
+
+    if (usersToDelete.length > 0) {
+      await this.prismaService.$transaction(async (tx) => {
+        await tx.deletedUser.createMany({
+          data: usersToDelete.map((users) => ({
+            originalUserId: users.id,
+            email: users.email,
+            createdAt: users.createdAt,
+          })),
+        });
+
+        return tx.user.deleteMany({
+          where: whereClause,
+        });
+      });
+    }
+    this.logger.info('Completed cleanup of expired demo users', {
+      deletedCount: usersToDelete.length,
+    });
   }
 
   private async createDemoUser() {
@@ -260,39 +294,6 @@ export class DemoService {
     }
 
     return setsData;
-  }
-
-  // Cleanup job to remove expired demo users
-  // @Cron('0 */15 * * * *') // Every 15 minutes
-  async cleanupExpiredDemoUsers() {
-    this.logger.info('Starting cleanup of expired demo users');
-    const whereClause = {
-      userType: UserType.DEMO,
-      demoExpiresAt: { lt: new Date() },
-    };
-
-    const usersToDelete = await this.prismaService.user.findMany({
-      where: whereClause,
-    });
-
-    if (usersToDelete.length > 0) {
-      await this.prismaService.$transaction(async (tx) => {
-        await tx.deletedUser.createMany({
-          data: usersToDelete.map((users) => ({
-            originalUserId: users.id,
-            email: users.email,
-            createdAt: users.createdAt,
-          })),
-        });
-
-        return tx.user.deleteMany({
-          where: whereClause,
-        });
-      });
-    }
-    this.logger.info('Completed cleanup of expired demo users', {
-      deletedCount: usersToDelete.length,
-    });
   }
 
   private async checkIpRateLimit(ipAddress: string) {
