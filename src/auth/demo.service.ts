@@ -3,20 +3,25 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { AuthService } from './auth.service';
 import crypto from 'crypto';
 import { Exercise, Prisma, UserType } from '@prisma/client';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class DemoService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly authService: AuthService,
+    @InjectPinoLogger(DemoService.name) private readonly logger: PinoLogger,
   ) {}
 
   async createDemoSession(captchaToken: string, ipAddress: string) {
+    this.logger.info(`Creating demo session`, { ipAddress });
     await this.authService.verifyCaptcha(captchaToken);
 
     await this.checkIpRateLimit(ipAddress);
 
     const demoUser = await this.createDemoUser();
+
+    this.logger.info(`Demo user created`, { userId: demoUser.id, ipAddress });
     return this.authService.login(demoUser);
   }
 
@@ -172,7 +177,6 @@ export class DemoService {
         const setsForThisExercise = this.generateDemoSetsData(
           workoutExercise.id,
           exercise,
-          index,
         );
 
         allSetsData.push(...setsForThisExercise);
@@ -197,11 +201,29 @@ export class DemoService {
     return shuffled.slice(0, Math.min(count, allExercises.length));
   }
 
-  private generateDemoSetsData(
-    workoutExerciseId: number,
-    exercise: Exercise,
-    workoutIndex: number,
-  ) {
+  private generateRealisticWeight() {
+    const allowedIncrements = [2.5, 5, 10, 15, 20, 25];
+    const minWeight = 20;
+    const maxWeight = 120;
+    const possibleWeights: number[] = [];
+
+    for (const inc of allowedIncrements) {
+      for (let w = minWeight; w <= maxWeight; w += inc) {
+        if (!possibleWeights.includes(w)) {
+          possibleWeights.push(w);
+        }
+      }
+    }
+
+    possibleWeights.sort((a, b) => a - b);
+
+    // Skew toward lower weights
+    const r = Math.pow(Math.random(), 2);
+    const idx = Math.floor(r * possibleWeights.length);
+    return possibleWeights[idx];
+  }
+
+  private generateDemoSetsData(workoutExerciseId: number, exercise: Exercise) {
     const numSets = 3 + Math.floor(Math.random() * 3); // 3-5 sets
     const setsData: Prisma.WorkoutSetCreateManyInput[] = [];
 
@@ -215,15 +237,13 @@ export class DemoService {
       if (exercise.category === 'strength') {
         if (isWarmup) {
           reps = 8 + Math.floor(Math.random() * 5); // 8-12 reps for warmup
-          weight = 40 + Math.floor(Math.random() * 30); // 40-70kg for warmup
+          weight = 20;
         } else {
           reps = 6 + Math.floor(Math.random() * 8); // 6-13 reps
-          // Progressive weight over time (workouts get heavier)
-          const baseWeight = 60 + workoutIndex * 2.5; // Gradual progression
-          weight = baseWeight + Math.floor(Math.random() * 20); // Add some variation
+          weight = this.generateRealisticWeight();
         }
       } else if (exercise.category === 'cardio') {
-        duration = 180 + Math.floor(Math.random() * 600); // 3-13 minutes
+        duration = 2 + Math.floor(Math.random() * 9); // 2-10 minutes
       }
 
       setsData.push({
