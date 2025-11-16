@@ -34,8 +34,8 @@ async function bootstrap() {
     autoTagControllers: true,
   };
   const moduleOptions: SwaggerCustomOptions = {
-    ui: true,
-    raw: ['json'],
+    ui: process.env.NODE_ENV === 'production' ? false : true,
+    raw: process.env.NODE_ENV === 'production' ? [] : ['json'],
     jsonDocumentUrl: 'api/json',
   };
   const documentFactory = () =>
