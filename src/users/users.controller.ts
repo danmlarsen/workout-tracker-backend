@@ -6,11 +6,19 @@ import { type AuthUser } from 'src/common/types/auth-user.interface';
 import { DeleteAccountDto } from './dtos/delete-account.dto';
 import { type Response } from 'express';
 import { REFRESH_TOKEN_COOKIE } from 'src/common/constants';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  /**
+   * Delete the current user's account
+   * @throws {401} Unauthorized.
+   * @throws {400} Invalid password.
+   * @throws {404} User not found.
+   */
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Delete('account')
   async deleteAccount(

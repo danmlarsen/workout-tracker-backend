@@ -3,6 +3,12 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { Logger } from 'nestjs-pino';
+import {
+  DocumentBuilder,
+  SwaggerCustomOptions,
+  SwaggerDocumentOptions,
+  SwaggerModule,
+} from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -16,6 +22,25 @@ async function bootstrap() {
         : true,
     credentials: true,
   });
+
+  const config = new DocumentBuilder()
+    .setTitle('NextLift API')
+    .setDescription('API documentation for the NextLift application')
+    .setVersion('1.0')
+    .addBearerAuth()
+    // .addTag('workouts')
+    .build();
+  const documentOptions: SwaggerDocumentOptions = {
+    autoTagControllers: true,
+  };
+  const moduleOptions: SwaggerCustomOptions = {
+    ui: true,
+    raw: ['json'],
+    jsonDocumentUrl: 'api/json',
+  };
+  const documentFactory = () =>
+    SwaggerModule.createDocument(app, config, documentOptions);
+  SwaggerModule.setup('api', app, documentFactory, moduleOptions);
 
   await app.listen(process.env.PORT ?? 3000);
 }

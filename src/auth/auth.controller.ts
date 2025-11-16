@@ -28,6 +28,7 @@ import { plainToInstance } from 'class-transformer';
 import { UserResponseDto } from './dtos/user-response.dto';
 import { CreateDemoSessionDto } from './dtos/create-demo-session.dto';
 import { DemoService } from './demo.service';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 @Controller('auth')
 export class AuthController {
@@ -37,6 +38,11 @@ export class AuthController {
     private readonly demoService: DemoService,
   ) {}
 
+  /**
+   * Register a new user
+   * @throws {400} Bad Request.
+   * @throws {409} Email already in use.
+   */
   @Post('register')
   async register(@Body() body: RegisterUserDto) {
     const newUser = await this.authService.registerUser(body);
@@ -45,6 +51,10 @@ export class AuthController {
     });
   }
 
+  /**
+   * Log in a user
+   * @throws {401} Invalid credentials.
+   */
   @UseGuards(LocalAuthGuard)
   @Post('login')
   async login(
@@ -67,6 +77,10 @@ export class AuthController {
     return { access_token, refresh_token, ...loginData };
   }
 
+  /**
+   * Refresh access token using refresh token
+   * @throws {401} Refresh token required or invalid.
+   */
   @Post('refresh')
   async refresh(
     @Request()
@@ -96,6 +110,11 @@ export class AuthController {
     }
   }
 
+  /**
+   * Log out the current user
+   * @throws {401} Unauthorized.
+   */
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {
@@ -108,12 +127,23 @@ export class AuthController {
     return { status: 'success' };
   }
 
+  /**
+   * Get current authenticated user
+   * @throws {401} Unauthorized.
+   */
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('whoami')
   whoAmI(@CurrentUser() user: AuthUser) {
     return user;
   }
 
+  /**
+   * Change password for current user
+   * @throws {400} Bad Request.
+   * @throws {401} Unauthorized.
+   */
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Post('change-password')
   async changePassword(
@@ -127,16 +157,31 @@ export class AuthController {
     );
   }
 
+  /**
+   * Confirm user email address
+   * @throws {400} Invalid or expired token.
+   * @throws {404} User not found.
+   */
   @Get('confirm/:token')
   async confirmEmail(@Param('token') token: string) {
     return this.authService.confirmEmail(token);
   }
 
+  /**
+   * Resend email confirmation
+   * @throws {400} Bad Request.
+   * @throws {404} User not found.
+   */
   @Post('resend-confirmation')
   async resendConfirmation(@Body() body: ResendConfirmationDto) {
     return this.authService.resendConfirmationEmail(body);
   }
 
+  /**
+   * Request password reset email
+   * @throws {400} Bad Request.
+   * @throws {404} User not found.
+   */
   @Post('request-password-reset')
   async requestPasswordReset(
     @Body() body: RequestPasswordResetDto,
@@ -149,6 +194,11 @@ export class AuthController {
     );
   }
 
+  /**
+   * Reset password using reset token
+   * @throws {400} Invalid or expired token.
+   * @throws {404} User not found.
+   */
   @Post('password-reset/:token')
   async resetPassword(
     @Param('token') token: string,
@@ -157,6 +207,11 @@ export class AuthController {
     return this.authService.resetPassword(token, body);
   }
 
+  /**
+   * Create a demo session
+   * @throws {400} Bad Request.
+   * @throws {429} Too many demo sessions.
+   */
   @Post('demo/create-session')
   async createDemoSession(
     @Body() body: CreateDemoSessionDto,

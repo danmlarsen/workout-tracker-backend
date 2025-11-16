@@ -17,12 +17,19 @@ import { type AuthUser } from 'src/common/types/auth-user.interface';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { CreateExerciseDto } from './dtos/create-exercise.dto';
 import { UpdateExerciseDto } from './dtos/update-exercise.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
 @Controller('exercises')
 export class ExercisesController {
   constructor(private readonly exercisesService: ExercisesService) {}
 
+  /**
+   * Get all exercises for the current user
+   * @throws {401} Unauthorized.
+   * @throws {400} Bad Request.
+   */
   @Get()
   getAllExercises(
     @CurrentUser() user: AuthUser,
@@ -39,6 +46,11 @@ export class ExercisesController {
     });
   }
 
+  /**
+   * Get a specific exercise by ID
+   * @throws {401} Unauthorized.
+   * @throws {404} Exercise not found.
+   */
   @Get(':exerciseId')
   getExercise(
     @CurrentUser() user: AuthUser,
@@ -47,6 +59,12 @@ export class ExercisesController {
     return this.exercisesService.findExerciseById(user.id, exerciseId);
   }
 
+  /**
+   * Create a new exercise
+   * @throws {401} Unauthorized.
+   * @throws {400} Bad Request.
+   * @throws {409} Exercise already exists.
+   */
   @Post()
   createExercise(
     @CurrentUser() user: AuthUser,
@@ -55,6 +73,12 @@ export class ExercisesController {
     return this.exercisesService.createExercise(user.id, body);
   }
 
+  /**
+   * Update an existing exercise
+   * @throws {401} Unauthorized.
+   * @throws {400} Bad Request.
+   * @throws {404} Exercise not found.
+   */
   @Patch(':exerciseId')
   updateExercise(
     @CurrentUser() user: AuthUser,
@@ -64,6 +88,11 @@ export class ExercisesController {
     return this.exercisesService.updateExercise(user.id, exerciseId, body);
   }
 
+  /**
+   * Delete an exercise
+   * @throws {401} Unauthorized.
+   * @throws {404} Exercise not found.
+   */
   @Delete(':exerciseId')
   deleteExercise(
     @CurrentUser() user: AuthUser,
@@ -72,6 +101,11 @@ export class ExercisesController {
     return this.exercisesService.deleteExercise(user.id, exerciseId);
   }
 
+  /**
+   * Get workouts that use a specific exercise
+   * @throws {401} Unauthorized.
+   * @throws {404} Exercise not found.
+   */
   @Get(':exerciseId/workouts')
   getExerciseWorkouts(
     @CurrentUser() user: AuthUser,

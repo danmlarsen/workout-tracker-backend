@@ -4,6 +4,7 @@ import {
   ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -11,6 +12,10 @@ import { PrismaService } from 'src/prisma/prisma.service';
 export class HealthController {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Check basic health status of the API and database connection
+   * @throws {503} Database unavailable.
+   */
   @Get()
   async check() {
     try {
@@ -25,6 +30,12 @@ export class HealthController {
     }
   }
 
+  /**
+   * Get detailed health status (auth required)
+   * @throws {401} Unauthorized.
+   * @throws {503} Database unavailable.
+   */
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('detailed')
   async detailed() {
