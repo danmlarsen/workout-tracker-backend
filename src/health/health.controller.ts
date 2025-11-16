@@ -3,12 +3,13 @@ import {
   Get,
   ServiceUnavailableException,
   UseGuards,
+  VERSION_NEUTRAL,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-@Controller('health')
+@Controller({ path: 'health', version: VERSION_NEUTRAL })
 export class HealthController {
   constructor(private prisma: PrismaService) {}
 
