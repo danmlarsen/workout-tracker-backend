@@ -9,6 +9,8 @@ import { LoggerModule } from 'nestjs-pino';
 import { EmailModule } from './email/email.module';
 import { HealthModule } from './health/health.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { minutes, ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -26,6 +28,14 @@ import { ScheduleModule } from '@nestjs/schedule';
         },
       },
     }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: minutes(1),
+          limit: 60,
+        },
+      ],
+    }),
     PrismaModule,
     WorkoutsModule,
     UsersModule,
@@ -36,6 +46,11 @@ import { ScheduleModule } from '@nestjs/schedule';
     ScheduleModule.forRoot(),
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}
