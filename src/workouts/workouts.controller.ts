@@ -236,6 +236,7 @@ export class WorkoutsController {
   @Patch(':workoutId/workoutExercises/:workoutExerciseId')
   updateWorkoutExercise(
     @CurrentUser() user: AuthUser,
+    @Param('workoutId', ParseIntPipe) workoutId: number,
     @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
     @Body() body: UpdateWorkoutExerciseDto,
   ) {
@@ -254,6 +255,7 @@ export class WorkoutsController {
   @Delete(':workoutId/workoutExercises/:workoutExerciseId')
   deleteWorkoutExercise(
     @CurrentUser() user: AuthUser,
+    @Param('workoutId', ParseIntPipe) workoutId: number,
     @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
   ) {
     return this.workoutExercise.deleteWorkoutExercise(
@@ -270,6 +272,7 @@ export class WorkoutsController {
   @Get(':workoutId/workoutExercises/:workoutExerciseId/sets')
   getWorkoutExerciseSets(
     @CurrentUser() user: AuthUser,
+    @Param('workoutId', ParseIntPipe) workoutId: number,
     @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
   ) {
     return this.workoutExercise.getWorkoutExerciseSets(
@@ -287,6 +290,7 @@ export class WorkoutsController {
   @Post(':workoutId/workoutExercises/:workoutExerciseId/sets')
   createWorkoutSet(
     @CurrentUser() user: AuthUser,
+    @Param('workoutId', ParseIntPipe) workoutId: number,
     @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
     @Body() body: CreateWorkoutSetDto,
   ) {
@@ -301,6 +305,8 @@ export class WorkoutsController {
    */
   @Patch(':workoutId/workoutExercises/:workoutExerciseId/sets/:setId')
   updateWorkoutSet(
+    @Param('workoutId', ParseIntPipe) workoutId: number,
+    @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
     @Param('setId', ParseIntPipe) setId: number,
     @CurrentUser() user: AuthUser,
     @Body() body: UpdateWorkoutSetDto,
@@ -315,6 +321,8 @@ export class WorkoutsController {
    */
   @Delete(':workoutId/workoutExercises/:workoutExerciseId/sets/:setId')
   deleteWorkoutSet(
+    @Param('workoutId', ParseIntPipe) workoutId: number,
+    @Param('workoutExerciseId', ParseIntPipe) workoutExerciseId: number,
     @Param('setId', ParseIntPipe) setId: number,
     @CurrentUser() user: AuthUser,
   ) {

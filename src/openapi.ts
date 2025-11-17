@@ -4,9 +4,14 @@ import { createSwaggerConfig } from './swagger-config';
 import { SwaggerModule } from '@nestjs/swagger';
 import { join } from 'path';
 import { writeFileSync } from 'fs';
+import { VersioningType } from '@nestjs/common';
 
 async function generateOpenApi() {
   const app = await NestFactory.create(AppModule, { logger: false });
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
 
   const config = createSwaggerConfig();
   const document = SwaggerModule.createDocument(app, config);
