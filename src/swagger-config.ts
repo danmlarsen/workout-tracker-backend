@@ -17,6 +17,7 @@ export const createSwaggerConfig = () =>
     .build();
 export const documentOptions: SwaggerDocumentOptions = {
   autoTagControllers: true,
+  operationIdFactory: (controllerKey: string, methodKey: string) => methodKey,
 };
 export const moduleOptions: SwaggerCustomOptions = {
   ui: process.env.NODE_ENV === 'production' ? false : true,
