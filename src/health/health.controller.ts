@@ -14,21 +14,13 @@ export class HealthController {
   constructor(private prisma: PrismaService) {}
 
   /**
-   * Check basic health status of the API and database connection
-   * @throws {503} Database unavailable.
+   * Check basic health status of the API
    */
   @Get()
-  async check() {
-    try {
-      // Check database connection
-      await this.prisma.$queryRaw`SELECT 1`;
-
-      return {
-        status: 'ok',
-      };
-    } catch {
-      throw new ServiceUnavailableException('Database unavailable');
-    }
+  check() {
+    return {
+      status: 'ok',
+    };
   }
 
   /**
